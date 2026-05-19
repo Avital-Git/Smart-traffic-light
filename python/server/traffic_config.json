@@ -1,0 +1,47 @@
+{
+  "description": "Frozen final delivery configuration for Smart Traffic Controller",
+  "profile_name": "delivery_final_2026_05",
+  "target_environment": "prod",
+  "frozen": true,
+  "network": {
+    "default_cycle_time_sec": 60,
+    "min_phase_duration_sec": 12,
+    "max_phase_duration_sec": 75,
+    "phase_extension_threshold_sec": 6
+  },
+  "thresholds": {
+    "queue_critical": 18,
+    "queue_high": 14,
+    "queue_medium": 8,
+    "queue_low": 4,
+    "density_critical_pct": 82.0,
+    "density_high_pct": 68.0,
+    "density_medium_pct": 48.0,
+    "wait_time_critical_sec": 55,
+    "wait_time_high_sec": 40,
+    "wait_time_medium_sec": 22
+  },
+  "emergency": {
+    "emergency_cycle_time_sec": 28,
+    "emergency_max_phase_duration_sec": 90,
+    "emergency_min_phase_duration_sec": 6,
+    "priority_boost_factor": 2.5
+  },
+  "rl_agent": {
+    "learning_rate": 0.08,
+    "discount_factor": 0.95,
+    "epsilon_initial": 0.15,
+    "epsilon_final": 0.02,
+    "epsilon_decay": 0.999,
+    "max_queue_penalty": -120.0,
+    "wait_time_penalty_factor": -0.7,
+    "throughput_reward_factor": 6.0,
+    "action_smoothing_factor": 0.8
+  },
+  "intersections": {
+    "default_lanes": 4,
+    "default_speed_limit_kmh": 50,
+    "default_lane_capacity": 30,
+    "sensor_reliability_pct": 98.0
+  }
+}

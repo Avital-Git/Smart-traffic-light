@@ -1,0 +1,15 @@
+{
+  "profile_name": "conservative",
+  "include_neighbor_in_state_encoding": false,
+  "include_neighbor_in_rule_scoring": true,
+  "include_neighbor_in_reward": true,
+  "reward_sync_bonus": 3.2,
+  "reward_opposing_penalty": 3.2,
+  "reward_sync_when_queue_worse_scale": 0.15,
+  "reward_opposing_when_queue_worse_scale": 1.60,
+  "reward_opposing_when_queue_better_scale": 0.90,
+  "rule_sync_weight": 0.9,
+  "rule_emergency_bonus": 1.2,
+  "rule_opposing_weight": 1.2,
+  "local_weight_divisor": 16.0
+}

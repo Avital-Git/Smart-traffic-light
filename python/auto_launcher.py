@@ -53,8 +53,7 @@ class SimulatedIntersection:
         lanes = []
         for lane_id in range(self.num_lanes):
             vc = random.randint(0, 12)
-            pc = random.randint(0, 4)
-            density = min(100.0, vc * random.uniform(5.0, 12.0))
+            density = min(100.0, vc * random.uniform(7.0, 12.0))
             self.waiting_times[lane_id] = (
                 self.waiting_times[lane_id] + 1.0 if vc > 0 else 0.0
             )
@@ -62,7 +61,6 @@ class SimulatedIntersection:
                 LaneState(
                     lane_id=lane_id,
                     vehicle_count=vc,
-                    pedestrian_count=pc,
                     density_pct=round(density, 1),
                     waiting_time_sec=self.waiting_times[lane_id],
                 )
@@ -87,8 +85,7 @@ class SimulatedIntersection:
                         cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
             cv2.putText(
                 frame,
-                f"V={lane.vehicle_count} P={lane.pedestrian_count} "
-                f"D={lane.density_pct}% W={lane.waiting_time_sec:.0f}s",
+                f"Count={lane.vehicle_count} D={lane.density_pct:.1f}% W={lane.waiting_time_sec:.0f}s",
                 (x1 + 8, y1 + 46), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (220, 220, 220), 1,
             )
             for _ in range(min(lane.vehicle_count, 8)):

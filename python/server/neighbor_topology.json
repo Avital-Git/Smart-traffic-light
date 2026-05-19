@@ -1,0 +1,8 @@
+{
+  "intersections": {
+    "1": { "neighbors": [2] },
+    "2": { "neighbors": [1, 3] },
+    "3": { "neighbors": [2, 4] },
+    "4": { "neighbors": [3] }
+  }
+}

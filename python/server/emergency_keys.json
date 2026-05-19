@@ -1,0 +1,9 @@
+{
+  "max_clock_skew_sec": 20,
+  "vehicle_keys": {
+    "AMB001": "d63b77ffb311b449f04cdfe6c5d19bb8321dd2d976b62acc",
+    "POL001": "99f02c8d133639ba870baa5dad66181b485571ac2c31909e",
+    "FIRE001": "425f3a5fb8d6266b4940870a4a472e28bfcde89a8eb66ccd",
+    "MED001": "c1d45f43a68404423c6be0d93f58558b18e72d2089b9a46a"
+  }
+}

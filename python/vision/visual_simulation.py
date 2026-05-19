@@ -40,8 +40,7 @@ def run_visual_simulation(
             x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
 
             vehicle_count = random.randint(0, 12)
-            pedestrian_count = random.randint(0, 4)
-            density_pct = min(100.0, vehicle_count * random.uniform(5.0, 12.0))
+            density_pct = min(100.0, vehicle_count * random.uniform(7.0, 12.0))
 
             if vehicle_count > 0:
                 waiting_times[lane_id] += 1.0
@@ -51,13 +50,12 @@ def run_visual_simulation(
             lane = LaneState(
                 lane_id=lane_id,
                 vehicle_count=vehicle_count,
-                pedestrian_count=pedestrian_count,
                 density_pct=round(density_pct, 1),
                 waiting_time_sec=waiting_times[lane_id],
             )
             lanes.append(lane)
 
-            color = (0, 180, 255) if density_pct >= 70 else (0, 200, 0)
+            color = (0, 180, 255) if lane.density_pct >= 70 else (0, 200, 0)
             cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
 
             cv2.putText(
@@ -71,7 +69,7 @@ def run_visual_simulation(
             )
             cv2.putText(
                 frame,
-                f"V={vehicle_count} P={pedestrian_count} D={lane.density_pct}% W={lane.waiting_time_sec:.0f}s",
+                f"Count={vehicle_count} D={lane.density_pct:.1f}% W={lane.waiting_time_sec:.0f}s",
                 (x1 + 8, y1 + 48),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.5,

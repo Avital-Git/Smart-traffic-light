@@ -1,0 +1,15 @@
+{
+  "profile_name": "balanced",
+  "include_neighbor_in_state_encoding": false,
+  "include_neighbor_in_rule_scoring": true,
+  "include_neighbor_in_reward": true,
+  "reward_sync_bonus": 5.0,
+  "reward_opposing_penalty": 2.5,
+  "reward_sync_when_queue_worse_scale": 0.25,
+  "reward_opposing_when_queue_worse_scale": 1.25,
+  "reward_opposing_when_queue_better_scale": 0.60,
+  "rule_sync_weight": 1.2,
+  "rule_emergency_bonus": 1.5,
+  "rule_opposing_weight": 0.75,
+  "local_weight_divisor": 18.0
+}

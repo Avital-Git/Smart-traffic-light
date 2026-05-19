@@ -1,0 +1,14 @@
+{
+  "vehicle_count": {
+    "light_max": 4,
+    "medium_max": 14
+  },
+  "waiting_time_sec": {
+    "short_max": 22,
+    "medium_max": 55
+  },
+  "density_pct": {
+    "low_max": 48,
+    "medium_max": 68
+  }
+}

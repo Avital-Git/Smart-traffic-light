@@ -5,3 +5,7 @@ pyodbc
 fastapi
 uvicorn
 pydantic
+websockets
+wsprotocryptography
+python-dotenv
+python-multipart

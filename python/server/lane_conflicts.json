@@ -1,0 +1,142 @@
+{
+  "description": "Lane conflict matrix - which lanes cannot be active simultaneously",
+  "intersections": {
+    "1": {
+      "name": "צומת מרכזי",
+      "lanes": 4,
+      "conflicts": [
+        {
+          "lane_a": 0,
+          "lane_b": 1,
+          "reason": "opposing_directions",
+          "severity": "high"
+        },
+        {
+          "lane_a": 0,
+          "lane_b": 2,
+          "reason": "diagonal_conflict",
+          "severity": "medium"
+        },
+        {
+          "lane_a": 1,
+          "lane_b": 3,
+          "reason": "diagonal_conflict",
+          "severity": "medium"
+        },
+        {
+          "lane_a": 2,
+          "lane_b": 3,
+          "reason": "opposing_directions",
+          "severity": "high"
+        }
+      ]
+    },
+    "2": {
+      "name": "צומת האוניברסיטה",
+      "lanes": 4,
+      "conflicts": [
+        {
+          "lane_a": 0,
+          "lane_b": 1,
+          "reason": "opposing_directions",
+          "severity": "high"
+        },
+        {
+          "lane_a": 0,
+          "lane_b": 2,
+          "reason": "diagonal_conflict",
+          "severity": "medium"
+        },
+        {
+          "lane_a": 1,
+          "lane_b": 3,
+          "reason": "diagonal_conflict",
+          "severity": "medium"
+        },
+        {
+          "lane_a": 2,
+          "lane_b": 3,
+          "reason": "opposing_directions",
+          "severity": "high"
+        }
+      ]
+    },
+    "3": {
+      "name": "צומת בית חולים",
+      "lanes": 4,
+      "conflicts": [
+        {
+          "lane_a": 0,
+          "lane_b": 1,
+          "reason": "opposing_directions",
+          "severity": "high"
+        },
+        {
+          "lane_a": 0,
+          "lane_b": 2,
+          "reason": "diagonal_conflict",
+          "severity": "medium"
+        },
+        {
+          "lane_a": 1,
+          "lane_b": 3,
+          "reason": "diagonal_conflict",
+          "severity": "medium"
+        },
+        {
+          "lane_a": 2,
+          "lane_b": 3,
+          "reason": "opposing_directions",
+          "severity": "high"
+        }
+      ]
+    },
+    "4": {
+      "name": "צומת דרומי",
+      "lanes": 4,
+      "conflicts": [
+        {
+          "lane_a": 0,
+          "lane_b": 1,
+          "reason": "opposing_directions",
+          "severity": "high"
+        },
+        {
+          "lane_a": 0,
+          "lane_b": 2,
+          "reason": "diagonal_conflict",
+          "severity": "medium"
+        },
+        {
+          "lane_a": 1,
+          "lane_b": 3,
+          "reason": "diagonal_conflict",
+          "severity": "medium"
+        },
+        {
+          "lane_a": 2,
+          "lane_b": 3,
+          "reason": "opposing_directions",
+          "severity": "high"
+        }
+      ]
+    }
+  },
+  "conflict_rules": {
+    "high_severity": {
+      "allowed_simultaneously": false,
+      "all_red_buffer_sec": 2.0,
+      "penalty_for_violation": -50
+    },
+    "medium_severity": {
+      "allowed_simultaneously": false,
+      "all_red_buffer_sec": 1.5,
+      "penalty_for_violation": -25
+    },
+    "low_severity": {
+      "allowed_simultaneously": true,
+      "all_red_buffer_sec": 0.5,
+      "penalty_for_violation": -5
+    }
+  }
+}

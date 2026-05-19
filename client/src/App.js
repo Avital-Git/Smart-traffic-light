@@ -1,143 +1,188 @@
-/**
- * App.js
- * ------
- * דשבורד ראשי — מערכת ניהול תנועה חכמה
- * אביטל חדד | מכללת בנות בת שבע
- *
- * מציג בזמן אמת את מצב כל הצמתים מהשרת.
- */
-
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Navigate, Route, Routes } from 'react-router-dom';
+import { Sidebar } from './components/Sidebar';
+import { TopBar } from './components/TopBar';
+import { ControlPage } from './pages/ControlPage';
+import { LiveDashboardPage } from './pages/LiveDashboardPage';
+import { OverviewPage } from './pages/OverviewPage';
+import {
+  getIntersectionStatus,
+  getIntersections,
+  getNetworkMetrics,
+  sendManualControl,
+  subscribeGlobalUpdates,
+  subscribeIntersectionUpdates
+} from './services/api';
 import './App.css';
 
-const API_BASE = 'http://127.0.0.1:8000';
-
 function App() {
-  const [health, setHealth] = useState(null);
-  const [intersections, setIntersections] = useState({});
-  const [error, setError] = useState(null);
+  const [intersections, setIntersections] = useState([]);
+  const [selectedId, setSelectedId] = useState(null);
+  const [status, setStatus] = useState(null);
+  const [metrics, setMetrics] = useState(null);
+  const [metricsHistory, setMetricsHistory] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
 
-  // בדיקת תקינות שרת
-  const checkHealth = useCallback(async () => {
-    try {
-      const res = await fetch(`${API_BASE}/health`);
-      const data = await res.json();
-      setHealth(data);
-      setError(null);
-    } catch (e) {
-      setError('לא ניתן להתחבר לשרת. ודאי שהשרת רץ.');
-      setHealth(null);
-    }
-  }, []);
-
-  // קריאת מצב צמתים
-  const fetchIntersections = useCallback(async () => {
-    const ids = [1, 2, 3, 4];
-    const results = {};
-    for (const id of ids) {
-      try {
-        const res = await fetch(`${API_BASE}/intersection/${id}`);
-        if (res.ok) {
-          results[id] = await res.json();
-        }
-      } catch {
-        // צומת לא נמצאה — בסדר
+  useEffect(() => {
+    getIntersections().then((items) => {
+      setIntersections(items);
+      if (items.length > 0) {
+        setSelectedId(items[0].id);
       }
-    }
-    setIntersections(results);
+    });
   }, []);
 
   useEffect(() => {
-    checkHealth();
-    const interval = setInterval(() => {
-      checkHealth();
-      fetchIntersections();
-    }, 2000);
-    return () => clearInterval(interval);
-  }, [checkHealth, fetchIntersections]);
+    let isMounted = true;
+
+    const loadMetrics = async () => {
+      try {
+        const nextMetrics = await getNetworkMetrics();
+        if (isMounted) {
+          setMetrics(nextMetrics);
+          setMetricsHistory((current) => {
+            const nextPoint = {
+              timestamp: nextMetrics.timestamp,
+              timeLabel: new Date((nextMetrics.timestamp || Date.now() / 1000) * 1000).toLocaleTimeString('he-IL', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+              }),
+              totalQueue: nextMetrics.total_network_queue || 0,
+              avgWait: Math.round(nextMetrics.avg_network_waiting_sec || 0),
+              activeIntersections: nextMetrics.intersection_count || 0
+            };
+
+            return [...current, nextPoint].slice(-30);
+          });
+        }
+      } catch {
+        if (isMounted) {
+          setMetrics(null);
+        }
+      }
+    };
+
+    loadMetrics();
+    const interval = window.setInterval(loadMetrics, 10000);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(interval);
+    };
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = subscribeGlobalUpdates((event) => {
+      setEvents((current) => [{ ...event }, ...current].slice(0, 20));
+    });
+
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    if (!selectedId) return undefined;
+
+    const load = async () => {
+      try {
+        const data = await getIntersectionStatus(selectedId);
+        setStatus(data);
+        setError('');
+      } catch {
+        setError('לא ניתן לטעון את מצב הצומת כרגע.');
+      }
+    };
+
+    load();
+
+    const unsubscribe = subscribeIntersectionUpdates(selectedId, (nextStatus) => {
+      setStatus(nextStatus);
+      setError('');
+    });
+
+    const interval = window.setInterval(load, 10000);
+    return () => {
+      unsubscribe();
+      window.clearInterval(interval);
+    };
+  }, [selectedId]);
+
+  const selectedIntersection = useMemo(
+    () => intersections.find((item) => item.id === selectedId) || null,
+    [intersections, selectedId]
+  );
+
+  async function handleManualControl(action, enabled) {
+    if (!selectedId) return;
+    const result = await sendManualControl(selectedId, action, enabled);
+    setMessage(result.ok ? 'הפקודה נשלחה בהצלחה' : 'שליחת הפקודה נכשלה');
+  }
+
+  const connectionStatus = status ? 'online' : 'offline';
 
   return (
-    <div className="app">
-      <header className="header">
-        <h1>🚦 Smart Traffic Dashboard</h1>
-        <p>מערכת ניהול תנועה חכמה — צפייה בזמן אמת</p>
-        <div className={`status-badge ${health ? 'online' : 'offline'}`}>
-          {health ? '🟢 שרת פעיל' : '🔴 שרת לא זמין'}
-        </div>
-      </header>
+    <div className="app-shell">
+      <Sidebar
+        selectedIntersection={selectedIntersection}
+        connectionStatus={connectionStatus}
+      />
 
-      {error && <div className="error-banner">{error}</div>}
+      <div className="main-wrapper">
+        <TopBar
+          selectedIntersection={selectedIntersection}
+          connectionStatus={connectionStatus}
+        />
 
-      <main className="dashboard">
-        {Object.keys(intersections).length === 0 ? (
-          <div className="no-data">
-            <p>⏳ ממתין לנתונים מהצמתים...</p>
-            <p>הפעילי את הסימולציה או את auto_launcher.py</p>
-          </div>
-        ) : (
-          <div className="grid">
-            {Object.entries(intersections).map(([id, state]) => (
-              <IntersectionCard key={id} state={state} />
-            ))}
-          </div>
-        )}
-      </main>
+        {error && <div className="error-banner">{error}</div>}
 
-      <footer className="footer">
-        <p>אביטל חדד | מכללת בנות בת שבע | פרויקט גמר</p>
-      </footer>
+        <main className="page-content">
+          <Routes>
+            <Route path="/" element={<Navigate to="/overview" replace />} />
+            <Route
+              path="/live"
+              element={
+                <LiveDashboardPage
+                  metrics={metrics}
+                  metricsHistory={metricsHistory}
+                  events={events}
+                  selectedIntersection={selectedIntersection}
+                  status={status}
+                />
+              }
+            />
+            <Route
+              path="/overview"
+              element={
+                <OverviewPage
+                  intersections={intersections}
+                  selectedId={selectedId}
+                  onSelect={setSelectedId}
+                  selectedIntersection={selectedIntersection}
+                  status={status}
+                />
+              }
+            />
+            <Route
+              path="/control"
+              element={
+                <ControlPage
+                  intersections={intersections}
+                  selectedId={selectedId}
+                  onSelect={setSelectedId}
+                  selectedIntersection={selectedIntersection}
+                  status={status}
+                  message={message}
+                  onSendManualControl={handleManualControl}
+                />
+              }
+            />
+          </Routes>
+        </main>
+      </div>
     </div>
   );
 }
-
-
-function IntersectionCard({ state }) {
-  const totalVehicles = state.lanes
-    ? state.lanes.reduce((s, l) => s + l.vehicle_count, 0)
-    : 0;
-  const maxDensity = state.lanes
-    ? Math.max(...state.lanes.map(l => l.density_pct))
-    : 0;
-
-  const urgencyClass = maxDensity >= 70 ? 'high' : maxDensity >= 40 ? 'medium' : 'low';
-
-  return (
-    <div className={`card ${urgencyClass}`}>
-      <div className="card-header">
-        <h2>צומת #{state.intersection_id}</h2>
-        <span className="badge">{state.num_lanes} נתיבים</span>
-      </div>
-
-      <div className="stats">
-        <div className="stat">
-          <span className="stat-value">{totalVehicles}</span>
-          <span className="stat-label">רכבים</span>
-        </div>
-        <div className="stat">
-          <span className="stat-value">{maxDensity.toFixed(0)}%</span>
-          <span className="stat-label">צפיפות מקס׳</span>
-        </div>
-      </div>
-
-      <div className="lanes">
-        {state.lanes && state.lanes.map(lane => (
-          <div key={lane.lane_id} className="lane-row">
-            <span className="lane-label">נתיב {lane.lane_id}</span>
-            <div className="lane-bar-container">
-              <div
-                className="lane-bar"
-                style={{ width: `${Math.min(lane.density_pct, 100)}%` }}
-              />
-            </div>
-            <span className="lane-info">
-              V={lane.vehicle_count} P={lane.pedestrian_count} W={lane.waiting_time_sec.toFixed(0)}s
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 
 export default App;

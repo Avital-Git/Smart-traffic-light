@@ -1,0 +1,42 @@
+{
+  "description": "Traffic phase definitions for intersections",
+  "phases": {
+    "phase_0": {
+      "name": "North-South",
+      "directions": ["North", "South"],
+      "green_arrow_availability": false,
+      "pedestrian_crossing": ["East-West"],
+      "cycle_priority": 1
+    },
+    "phase_1": {
+      "name": "East-West",
+      "directions": ["East", "West"],
+      "green_arrow_availability": false,
+      "pedestrian_crossing": ["North-South"],
+      "cycle_priority": 2
+    },
+    "phase_2": {
+      "name": "North-Right",
+      "directions": ["North-Right"],
+      "green_arrow_availability": true,
+      "pedestrian_crossing": ["East-West", "South"],
+      "cycle_priority": 3
+    },
+    "phase_3": {
+      "name": "South-Right",
+      "directions": ["South-Right"],
+      "green_arrow_availability": true,
+      "pedestrian_crossing": ["East-West", "North"],
+      "cycle_priority": 3
+    }
+  },
+  "phase_sequences": {
+    "standard": [0, 1],
+    "with_turns": [0, 2, 1, 3],
+    "peak_hour": [0, 0, 1, 1],
+    "night_time": [0, 1]
+  },
+  "default_sequence": "standard",
+  "all_red_duration_sec": 2.0,
+  "yellow_duration_sec": 3.0
+}

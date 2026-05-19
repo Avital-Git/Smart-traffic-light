@@ -9,11 +9,9 @@ intersection_vision.py
 כל צומת יכולה להיות בעלת 2, 3, 4 או יותר מצלמות/נתיבים.
 
 מה המודול הזה עושה:
-  ✅ ספירת כלי רכב בכל נתיב (לפי מספר המצלמות)     — YOLO
-  ✅ זיהוי הולכי רגל בכל נתיב                    — YOLO
-  ✅ חישוב צפיפות תנועה (אחוז עומס)              — Background Subtraction + Traffic Density Estimation
-  ✅ ביטול בקשות שהעצם נעלם                        — בדיקה בפריים הבא
-  ✅ RL vector דינאמי בהתאם למספר הנתיבים        — to_rl_vector()
+    ✅ ספירת ישויות תנועה בכל נתיב (לפי מספר המצלמות) — YOLO
+    ✅ כל אזור תנועה נחשב כנתיב רגיל (ללא הפרדת הולכי רגל)
+    ✅ RL vector דינאמי עם ספירות מדויקות בלבד        — to_rl_vector()
 
 קלט:  מספר נתיבים, פריים וידאו מהמצלמה
 פלט:  IntersectionState — וקטור מצב מלא שנכנס לאלגוריתם RL
@@ -26,6 +24,8 @@ import cv2
 import numpy as np
 import time
 import json
+import hmac
+import hashlib
 import urllib.request
 import urllib.error
 from dataclasses import dataclass, asdict, field
@@ -48,6 +48,25 @@ class GPSEmergencySignal:
     lane_id: int = 0            # מזהה הנתיב (0, 1, 2, ...)
     vehicle_id: str = ""
     timestamp: float = 0.0
+    signature: str = ""
+
+
+def sign_emergency_signal(signal: GPSEmergencySignal, secret_key: str) -> GPSEmergencySignal:
+    """
+    חותם אות חירום באמצעות HMAC-SHA256.
+    הפורמט חייב להתאים לצד השרת:
+      {vehicle_id}|{lane_id}|{timestamp:.3f}
+    """
+    if signal.timestamp <= 0:
+        signal.timestamp = time.time()
+
+    payload = f"{signal.vehicle_id}|{signal.lane_id}|{signal.timestamp:.3f}"
+    signal.signature = hmac.new(
+        secret_key.encode("utf-8"),
+        payload.encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+    return signal
 
 
 @dataclass
@@ -55,8 +74,7 @@ class LaneState:
     """מצב נתיב יחיד - כעת עם lane_id דינאמי."""
     lane_id: int
     vehicle_count: int
-    pedestrian_count: int
-    density_pct: float
+    density_pct: float = 0.0
     waiting_time_sec: float = 0.0
 
 
@@ -79,23 +97,9 @@ class IntersectionState:
     def to_rl_vector(self) -> list:
         """
         ממיר את כל ה-State לוקטור מספרי לרשת הנוירונים.
-        ווקטור דינאמי: (4 * num_lanes + 1) ערכים.
+        וקטור דינאמי: num_lanes ערכים (ספירה מדויקת לכל נתיב).
         """
-        vector = []
-        for lane in self.lanes:
-            vector.append(float(lane.vehicle_count))
-        for lane in self.lanes:
-            vector.append(float(lane.pedestrian_count))
-        for lane in self.lanes:
-            vector.append(lane.density_pct / 100.0)
-        for lane in self.lanes:
-            vector.append(lane.waiting_time_sec)
-        
-        emergency_active = (
-            self.emergency_signal is not None and self.emergency_signal.active
-        )
-        vector.append(1.0 if emergency_active else 0.0)
-        return vector
+        return [int(lane.vehicle_count) for lane in self.lanes]
 
     def to_json(self) -> str:
         """ממיר ל-JSON לשליחה לשרת."""
@@ -104,13 +108,8 @@ class IntersectionState:
             "num_lanes": self.num_lanes,
             "timestamp": self.timestamp,
             "lanes": [asdict(lane) for lane in self.lanes],
-            "emergency_active": (
-                self.emergency_signal.active
-                if self.emergency_signal else False
-            ),
-            "emergency_lane_id": (
-                self.emergency_signal.lane_id
-                if self.emergency_signal and self.emergency_signal.active else None
+            "emergency_signal": (
+                asdict(self.emergency_signal) if self.emergency_signal else None
             ),
             "total_vehicles": self.total_vehicles,
         }
@@ -181,47 +180,11 @@ def build_lane_zones(frame_width: int, frame_height: int, num_lanes: int) -> Lis
 
 
 # ══════════════════════════════════════════════════════
-# Background Subtraction — צפיפות תנועה
+# YOLO — זיהוי ישויות תנועה
 # ══════════════════════════════════════════════════════
 
-class TrafficDensityEstimator:
-    """אלגוריתם Background Subtraction לחישוב צפיפות עומס."""
-
-    def __init__(self):
-        self.bg_subtractor = cv2.createBackgroundSubtractorMOG2(
-            history=500,
-            varThreshold=50,
-            detectShadows=True
-        )
-
-    def compute_density(self, zone_frame: np.ndarray) -> float:
-        """מחזירה אחוז עומס 0-100."""
-        if zone_frame.size == 0:
-            return 0.0
-        
-        fg_mask = self.bg_subtractor.apply(zone_frame)
-        _, fg_mask = cv2.threshold(fg_mask, 200, 255, cv2.THRESH_BINARY)
-        
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-        fg_mask = cv2.morphologyEx(fg_mask, cv2.MORPH_CLOSE, kernel)
-        fg_mask = cv2.morphologyEx(fg_mask, cv2.MORPH_OPEN, kernel)
-        
-        total_pixels = fg_mask.shape[0] * fg_mask.shape[1]
-        occupied_pixels = cv2.countNonZero(fg_mask)
-        
-        if total_pixels == 0:
-            return 0.0
-        
-        density = (occupied_pixels / total_pixels) * 100.0
-        return round(min(density, 100.0), 1)
-
-
-# ══════════════════════════════════════════════════════
-# YOLO — זיהוי רכבים והולכי רגל
-# ══════════════════════════════════════════════════════
-
-VEHICLE_CLASS_IDS = {2, 3, 5, 7}      # car, motorcycle, bus, truck
-PEDESTRIAN_CLASS_ID = 0                # person
+# נספרים יחד כ"תנועה" ללא הבחנה פנימית
+TRAFFIC_CLASS_IDS = {0, 2, 3, 5, 7}    # person, car, motorcycle, bus, truck
 
 
 # ══════════════════════════════════════════════════════
@@ -264,8 +227,6 @@ class IntersectionAnalyzer:
         
         h, w = frame.shape[:2]
         self.lane_zones = build_lane_zones(w, h, num_lanes)
-        self.density_estimators = [TrafficDensityEstimator() for _ in range(num_lanes)]
-
         print(f"[Intersection {intersection_id}] מוכן | {w}x{h} | {num_lanes} נתיבים")
 
     def set_emergency_signal(self, signal: GPSEmergencySignal):
@@ -306,20 +267,13 @@ class IntersectionAnalyzer:
             x1, y1, x2, y2 = self.lane_zones[lane_id]
             x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
 
-            vehicles, pedestrians = 0, 0
+            vehicles = 0
             for det in detections:
                 cx, cy = det["cx"], det["cy"]
                 if x1 <= cx <= x2 and y1 <= cy <= y2:
-                    if det["class_id"] in VEHICLE_CLASS_IDS:
-                        vehicles += 1
-                    elif det["class_id"] == PEDESTRIAN_CLASS_ID:
-                        pedestrians += 1
+                    vehicles += 1
 
-            zone_roi = frame[y1:y2, x1:x2]
-            density = (
-                self.density_estimators[lane_id].compute_density(zone_roi)
-                if zone_roi.size > 0 else 0.0
-            )
+            density_pct = self._compute_lane_density_pct(detections, x1, y1, x2, y2)
 
             if vehicles > 0:
                 self._waiting_times[lane_id] += self.sample_interval
@@ -329,8 +283,7 @@ class IntersectionAnalyzer:
             lanes.append(LaneState(
                 lane_id=lane_id,
                 vehicle_count=vehicles,
-                pedestrian_count=pedestrians,
-                density_pct=density,
+                density_pct=density_pct,
                 waiting_time_sec=self._waiting_times[lane_id],
             ))
 
@@ -348,13 +301,41 @@ class IntersectionAnalyzer:
         if results.boxes is None:
             return detections
         for box in results.boxes:
+            class_id = int(box.cls[0])
+            if class_id not in TRAFFIC_CLASS_IDS:
+                continue
             x1, y1, x2, y2 = box.xyxy[0].tolist()
             detections.append({
-                "class_id": int(box.cls[0]),
+                "class_id": class_id,
+                "x1": x1,
+                "y1": y1,
+                "x2": x2,
+                "y2": y2,
                 "cx": (x1 + x2) / 2,
                 "cy": (y1 + y2) / 2,
             })
         return detections
+
+    def _compute_lane_density_pct(self, detections: list, x1: int, y1: int, x2: int, y2: int) -> float:
+        """מחזיר אחוז צפיפות באזור הנתיב לפי שטח תיבות הזיהוי בתוך ה-ROI."""
+        roi_w = max(0, x2 - x1)
+        roi_h = max(0, y2 - y1)
+        roi_area = roi_w * roi_h
+        if roi_area == 0:
+            return 0.0
+
+        occupied_area = 0.0
+        for det in detections:
+            ix1 = max(x1, int(det["x1"]))
+            iy1 = max(y1, int(det["y1"]))
+            ix2 = min(x2, int(det["x2"]))
+            iy2 = min(y2, int(det["y2"]))
+            iw = max(0, ix2 - ix1)
+            ih = max(0, iy2 - iy1)
+            occupied_area += iw * ih
+
+        density = min((occupied_area / roi_area) * 100.0, 100.0)
+        return round(density, 1)
 
     def visualize(self, frame: np.ndarray, state: IntersectionState) -> np.ndarray:
         """ציור debug על הפריים."""
@@ -368,8 +349,8 @@ class IntersectionAnalyzer:
             cv2.rectangle(vis, (x1, y1), (x2, y2), color, 2)
             
             lines = [
-                f"Lane {lane_id}: {lane.vehicle_count} vehicles | {lane.pedestrian_count} pedestrians",
-                f"Density: {lane.density_pct}% | Waiting: {lane.waiting_time_sec:.0f}s",
+                f"Lane {lane_id}: Count={lane.vehicle_count}",
+                f"Density: {lane.density_pct:.1f}% | Waiting: {lane.waiting_time_sec:.0f}s",
             ]
             for i, text in enumerate(lines):
                 cv2.putText(vis, text, (x1 + 5, y1 + 20 + i * 20),
@@ -416,9 +397,8 @@ if __name__ == "__main__":
         if state:
             print(f"\n[{time.strftime('%H:%M:%S')}] Intersection {state.intersection_id}")
             for lane in state.lanes:
-                print(f"  Lane {lane.lane_id}: {lane.vehicle_count} vehicles | "
-                      f"{lane.pedestrian_count} pedestrians | "
-                      f"Density {lane.density_pct}% | "
+                print(f"  Lane {lane.lane_id}: Count={lane.vehicle_count} | "
+                      f"Density {lane.density_pct:.1f}% | "
                       f"Waiting {lane.waiting_time_sec:.0f}s")
             print(f"  RL vector: {state.to_rl_vector()}")
 
