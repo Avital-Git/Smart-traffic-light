@@ -5,9 +5,9 @@
   "frozen": true,
   "network": {
     "default_cycle_time_sec": 60,
-    "min_phase_duration_sec": 12,
-    "max_phase_duration_sec": 75,
-    "phase_extension_threshold_sec": 6
+    "min_phase_duration_sec": 3,
+    "max_phase_duration_sec": 45,
+    "phase_extension_threshold_sec": 3
   },
   "thresholds": {
     "queue_critical": 18,
@@ -23,8 +23,8 @@
   },
   "emergency": {
     "emergency_cycle_time_sec": 28,
-    "emergency_max_phase_duration_sec": 90,
-    "emergency_min_phase_duration_sec": 6,
+    "emergency_max_phase_duration_sec": 60,
+    "emergency_min_phase_duration_sec": 2,
     "priority_boost_factor": 2.5
   },
   "rl_agent": {

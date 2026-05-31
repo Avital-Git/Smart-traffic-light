@@ -163,6 +163,7 @@ bool Junction::lanesAreMutuallyExclusive(const std::vector<int>& greenLanes) con
     std::unordered_set<int> uniqueLanes;
     for (int laneId : greenLanes) {
         if (!uniqueLanes.insert(laneId).second) {
+            std::cerr << "[Junction " << junctionId_ << "] duplicate lane in phase: " << laneId << "\n";
             return false;
         }
     }
@@ -170,6 +171,8 @@ bool Junction::lanesAreMutuallyExclusive(const std::vector<int>& greenLanes) con
     for (std::size_t i = 0; i < greenLanes.size(); ++i) {
         for (std::size_t j = i + 1; j < greenLanes.size(); ++j) {
             if (lanesConflict(greenLanes[i], greenLanes[j])) {
+                std::cerr << "[Junction " << junctionId_ << "] conflict blocked between lanes "
+                          << greenLanes[i] << " and " << greenLanes[j] << "\n";
                 return false;
             }
         }

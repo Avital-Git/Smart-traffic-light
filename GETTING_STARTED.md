@@ -17,15 +17,15 @@ python -m venv .venv
 source .venv/bin/activate
 
 # Χ”ΧªΧ§Χ Χª Χ›Χ Χ”ΧªΧΧ•Χ™Χ•Χª
-pip install -r requirements.txt
+pip install -r python/requirements.txt
 ```
 
-### 1.2 ΧΧ΅Χ“ Χ ΧªΧ•Χ Χ™Χ MySQL
+### 1.2 ΧΧ΅Χ“ Χ ΧªΧ•Χ Χ™Χ SQL Server
 
-#### ΧΧ¤Χ©Χ¨Χ•Χª 1: Χ©Χ™ΧΧ•Χ© Χ‘Χ‘Χ Χ™Χ™Χ” Χ’Χ¨Χ¤Χ™Χª (MySQL Workbench)
+#### ΧΧ¤Χ©Χ¨Χ•Χª 1: Χ©Χ™ΧΧ•Χ© Χ‘Χ‘Χ Χ™Χ™Χ” Χ’Χ¨Χ¤Χ™Χª (SQL Server Management Studio - SSMS)
 
-1. Χ¤ΧªΧ— ΧΧª MySQL Workbench
-2. Χ”ΧªΧ—Χ‘Χ¨ ΧΧ©Χ¨Χª MySQL Χ©ΧΧ
+1. Χ¤ΧªΧ— ΧΧª SQL Server Management Studio (SSMS)
+2. Χ”ΧªΧ—Χ‘Χ¨ ΧΧ©Χ¨Χª SQL Server Χ©ΧΧ
 3. Χ§Χ•Χ‘Χ¥ β†’ Χ¤ΧªΧ— SQL Script
 4. Χ‘Χ—Χ¨ `database_schema.sql` ΧΧ”Χ¤Χ¨Χ•Χ™Χ§Χ
 5. ΧΧ—Χ¥ Execute (Ctrl+Shift+Enter)
@@ -33,27 +33,21 @@ pip install -r requirements.txt
 #### ΧΧ¤Χ©Χ¨Χ•Χª 2: Χ©Χ™ΧΧ•Χ© Χ‘Χ©Χ•Χ¨Χª Χ”Χ¤Χ§Χ•Χ“Χ”
 
 ```bash
-# Χ›Χ Χ™Χ΅Χ” Χ-MySQL
-mysql -u root -p
-
-# Χ•ΧΧ– Χ‘ΧªΧ•Χ mysql:
-source c:\Users\User\Desktop\smart traffic project\database_schema.sql
-
-# ΧΧ• Χ‘ΧΆΧΧ“Χ” ΧΧ—Χª:
-mysql -u root -p < "c:\Users\User\Desktop\smart traffic project\database_schema.sql"
+# Χ”Χ¨Χ¦Χ” Χ©Χ Χ”Χ΅Χ›Χ™ΧΧ” Χ©Χ SQL Server
+sqlcmd -S localhost -E -i "c:\Users\User\Desktop\smart traffic project\database\database_schema_sqlserver.sql"
 ```
 
 #### ΧΧ¤Χ©Χ¨Χ•Χª 3: Χ©Χ™ΧΧ•Χ© Χ‘Χ§Χ•Χ‘Χ¥ Python
 
 ```bash
-python db_intersections.py
+python python/db_intersections.py
 ```
 
 ### 1.3 Χ‘Χ“Χ™Χ§Χª ΧΧ΅Χ“ Χ”Χ ΧªΧ•Χ Χ™Χ
 
 ```bash
 python
->>> from db_intersections import fetch_intersections
+>>> from python.db_intersections import fetch_intersections
 >>> intersections = fetch_intersections()
 >>> for row in intersections:
 ...     print(row)
@@ -64,7 +58,7 @@ python
 Χ‘ΧªΧ™Χ§Χ™Χ™Χ” Χ”Χ¨ΧΧ©Χ™Χª, ΧΧ¨ΧΧ™Χ Χ Χ—Χ“Χ©:
 
 ```bash
-python -m uvicorn server.app:app --reload --host 127.0.0.1 --port 8000
+python -m uvicorn server.app:app --app-dir python --reload --host 127.0.0.1 --port 8000
 ```
 
 ## Χ©ΧΧ‘ 2.5 (ΧΧ•ΧΧΧ¥): Χ”Χ¨Χ¦Χ” ΧΧ§Χ¦Χ” ΧΧ§Χ¦Χ” Χ‘Χ¤Χ§Χ•Χ“Χ” ΧΧ—Χª
@@ -74,6 +68,8 @@ python -m uvicorn server.app:app --reload --host 127.0.0.1 --port 8000
 ```bash
 python python/run_e2e.py --with-client
 ```
+
+Χ©Χ™ΧΧ™ ΧΧ‘: Χ‘ΧΧ™ `--with-client` Χ™ΧΆΧΧ• Χ¨Χ§ Server + C++ + Auto-Launcher (Χ‘ΧΧ™ React UI).
 
 ΧΧ” Χ–Χ” ΧΧ¨Χ™Χ ΧΧ•ΧΧ•ΧΧΧ™Χª:
 
@@ -100,7 +96,7 @@ Uvicorn running on http://127.0.0.1:8000
 Χ‘ΧΧ¨ΧΧ™Χ Χ Χ©ΧΧ™Χ©Χ™, ΧΧ¨ΧΧ™Χ Χ Χ—Χ“Χ©:
 
 ```bash
-python auto_launcher.py
+python python/auto_launcher.py
 ```
 
 Χ–Χ” **Χ™Χ’ΧΧ” Χ‘ΧΆΧ¦ΧΧ•** Χ›ΧΧ” ΧΧ¦ΧΧΧ•Χª Χ‘Χ›Χ Χ¦Χ•ΧΧª ΧΧ”ΧΧ΅Χ“ Χ ΧªΧ•Χ Χ™Χ Χ•Χ™Χ¤ΧΆΧ™Χ ΧΧª Χ”ΧΧΆΧ¨Χ›Χª!
@@ -171,7 +167,7 @@ python python/system_test_suite.py --skip-cpp
 ## Χ©ΧΧ‘ 5: ΧΧΧ©Χ§ React (ΧΧ¤Χ¦Χ™Χ•Χ ΧΧ™ ΧΧΆΧ›Χ©Χ™Χ•)
 
 ```bash
-cd website
+cd client
 npm install
 npm start
 ```
@@ -181,7 +177,7 @@ npm start
 **Χ–Χ” Χ”Χ”Χ“Χ‘Χ¨ Χ”Χ—Χ©Χ•Χ‘!**
 
 Χ”ΧΧΆΧ¨Χ›Χª ΧΧ•ΧΧ•ΧΧΧ™Χª:
-- Χ§Χ•Χ¨ΧΧª Χ-MySQL Χ›ΧΧ” ΧΧ¦ΧΧΧ•Χª Χ‘Χ›Χ Χ¦Χ•ΧΧª (`num_cameras`)
+- Χ§Χ•Χ¨ΧΧª Χ-SQL Server Χ›ΧΧ” ΧΧ¦ΧΧΧ•Χª Χ‘Χ›Χ Χ¦Χ•ΧΧª (`num_cameras`)
 - Χ™Χ•Χ¦Χ¨Χª `IntersectionAnalyzer` ΧΆΧ ΧΧ΅Χ¤Χ¨ Χ”Χ ΧªΧ™Χ‘Χ™Χ Χ”ΧΧªΧΧ™Χ
 - ΧΧ™Χ™Χ¦Χ¨Χª `RL vector` Χ‘Χ’Χ•Χ“Χ Χ“Χ™Χ ΧΧΧ™: `(4 * num_lanes + 1)`
 - Χ©Χ•ΧΧ—Χª ΧΧª Χ”ΧΧ¦Χ‘ ΧΧ©Χ¨Χª
@@ -193,15 +189,15 @@ npm start
 
 ## ΧΧ¨Χ•Χ‘ΧΧ©Χ•ΧΧ™Χ Χ’
 
-### Χ©Χ’Χ™ΧΧ”: "Cannot connect to MySQL"
+### Χ©Χ’Χ™ΧΧ”: "Cannot connect to SQL Server"
 
 ```bash
-# Χ‘Χ“Χ•Χ§ Χ©Χ”-MySQL service Χ¨Χ¥:
+# Χ‘Χ“Χ•Χ§ Χ©Χ©Χ™Χ¨Χ•Χª SQL Server Χ¨Χ¥:
 # Windows:
-Get-Service MySQL80
+Get-Service *MSSQL*
 
 # Linux:
-sudo service mysql status
+sudo systemctl status mssql-server
 ```
 
 ### Χ©Χ’Χ™ΧΧ”: "Cannot open video capture device"
@@ -212,17 +208,17 @@ sudo service mysql status
 
 ```bash
 # Χ”Χ©ΧªΧΧ© Χ‘Χ¤Χ•Χ¨Χ ΧΧ—Χ¨:
-python -m uvicorn server.app:app --host 127.0.0.1 --port 8001
+python -m uvicorn server.app:app --app-dir python --host 127.0.0.1 --port 8001
 ```
 
 ## Χ΅Χ™Χ›Χ•Χ
 
 ```
 β”β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”
-β”‚ 1. MySQL β†’ database_schema.sql           β”‚
-β”‚ 2. Server β†’ uvicorn server.app:app       β”‚
-β”‚ 3. Auto-Launcher β†’ python auto_launcher.py
-β”‚ 4. Frontend β†’ npm start (website/)       β”‚
+β”‚ 1. SQL Server β†’ database/database_schema_sqlserver.sql β”‚
+β”‚ 2. Server β†’ uvicorn server.app:app (--app-dir python) β”‚
+β”‚ 3. Auto-Launcher β†’ python python/auto_launcher.py      β”‚
+β”‚ 4. Frontend β†’ npm start (client/)        β”‚
 β””β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”€β”
 ```
 
@@ -230,9 +226,9 @@ python -m uvicorn server.app:app --host 127.0.0.1 --port 8001
 
 ---
 
-## ωμα 6: ΰαθηδ μιιφεψ (Production Hardening)
+## οΏ½οΏ½οΏ½ 6: οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½ (Production Hardening)
 
-### 6.1 δβγψϊ ραιαδ
+### 6.1 οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½
 
 `ash
 copy .env.example .env
@@ -240,7 +236,7 @@ copy .env.example .env
 
 ### 6.2 SSL/HTTPS
 
-ατιϊεη - ιεφψ ΰεθεξθιϊ:
+οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½ - οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½:
 
 `ash
 $env:TRAFFIC_USE_SSL = "true"
@@ -248,7 +244,7 @@ $env:TRAFFIC_ENV = "dev"
 python python/server/run.py
 `
 
-αιιφεψ:
+οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½:
 
 `ash
 $env:TRAFFIC_ENV = "prod"
@@ -257,7 +253,7 @@ $env:TRAFFIC_SSL_KEYFILE = "C:\certs\key.pem"
 python python/server/run.py
 `
 
-### 6.3 δβγψεϊ ΰαθηδ αχεαυ .env
+### 6.3 οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½ .env
 
 `ash
 TRAFFIC_ENV=prod
@@ -270,49 +266,49 @@ TRAFFIC_API_KEYS_FILE=/etc/smart_traffic/api_keys.json
 
 ---
 
-## ωμα 5: ξγιγϊ αιφεςιν εχεξτιμφιδ ρετιϊ (KPI Measurement & Final Report)
+## οΏ½οΏ½οΏ½ 5: οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½ (KPI Measurement & Final Report)
 
-### 5.1 ξςψλϊ ξγιγϊ KPIs
+### 5.1 οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½ KPIs
 
-ξςψλϊ ξγιγϊ αιφεςιν ξϊχγξϊ δξωεεδ αιο ξφα αριρι μξφα ξιθεα:
+οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½:
 
 \\\ash
-# δγμχϊ δωψϊ
+# οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½
 python -m uvicorn python.server.app:app --app-dir . --port 8000
 
-# αθψξιπμ πτψγ - δψφϊ ξγιγϊ KPIs
+# οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½ - οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½ KPIs
 python python/kpi_measurement.py
 \\\
 
-### 5.2 ϊεφΰεϊ ξγιγδ φτειεϊ
+### 5.2 οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½
 
-δξςψλϊ ξωεεδ αιο ωπι ξφαιν:
+οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½:
 
-| ξγγ | ςψκ αριρι | ςψκ ξιθεα | ωιτεψ |
+| οΏ½οΏ½οΏ½ | οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½ | οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½ | οΏ½οΏ½οΏ½οΏ½οΏ½ |
 |-----|----------|----------|-------|
-| ΰεψκ δϊεψ δξξεφς | 15.2 ψλαιν | 10.2 ψλαιν | -33% |
-| ζξο δξϊπδ ξξεφς | 42.8 ωπιεϊ | 28.2 ωπιεϊ | -34% |
-| ϊτεχδ | 18.5 ψλαιν/ξηζεψ | 25.2 ψλαιν/ξηζεψ | +36% |
-| πιχεγ ιςιμεϊ | 28.3/100 | 45.8/100 | +62% |
-| πιχεγ ιφιαεϊ | 34.5/100 | 50.1/100 | +45% |
+| οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½ | 15.2 οΏ½οΏ½οΏ½οΏ½οΏ½ | 10.2 οΏ½οΏ½οΏ½οΏ½οΏ½ | -33% |
+| οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½ | 42.8 οΏ½οΏ½οΏ½οΏ½οΏ½ | 28.2 οΏ½οΏ½οΏ½οΏ½οΏ½ | -34% |
+| οΏ½οΏ½οΏ½οΏ½οΏ½ | 18.5 οΏ½οΏ½οΏ½οΏ½οΏ½/οΏ½οΏ½οΏ½οΏ½οΏ½ | 25.2 οΏ½οΏ½οΏ½οΏ½οΏ½/οΏ½οΏ½οΏ½οΏ½οΏ½ | +36% |
+| οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½ | 28.3/100 | 45.8/100 | +62% |
+| οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½ | 34.5/100 | 50.1/100 | +45% |
 
-### 5.3 ωιξεω αξγιγϊ KPIs
+### 5.3 οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½ KPIs
 
 \\\python
 from python.kpi_measurement import KPIMeasurementEngine, generate_comparison_report
 
-# ιφιψϊ ξπες ξγιγδ
+# οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½
 engine = KPIMeasurementEngine(server_url="http://localhost:8000")
 
-# δχμθϊ ξγιγεϊ
+# οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½
 for i in range(10):
     engine.record_measurement(intersection_id=1)
     time.sleep(1)
 
-# ηιωεα γεη
+# οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½
 report = engine.compute_report(duration_sec=10)
 
-# δωεεΰδ αιο ξφα αριρι μξιθεα
+# οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½
 comparison = generate_comparison_report(
     baseline_report=baseline,
     optimized_report=optimized
@@ -320,16 +316,16 @@ comparison = generate_comparison_report(
 print(comparison)
 \\\
 
-### 5.4 δγεη δρετι
+### 5.4 οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½
 
-ψΰδ PROJECT_COMPLETION_REPORT.md μξιγς ξμΰ:
-- ? 5 ωμαιν αϊιψ ξμΰ
-- ? 14/14 αγιχεϊ ςεαψεϊ
-- ? λμ χθβεψιεϊ δαιθηεο ξιεωξεϊ
-- ? πιδεμ ϊφεψδ ξΰηγ
-- ? ξγιγϊ αιφεςιν επιθεψ
+οΏ½οΏ½οΏ½ PROJECT_COMPLETION_REPORT.md οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½:
+- ? 5 οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½
+- ? 14/14 οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½
+- ? οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½
+- ? οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½
+- ? οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½
 
-### 5.5 ρθθερ ριεν τψειχθ
+### 5.5 οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½
 
 \\\
 ? Section 1: End-to-End Integration - COMPLETE

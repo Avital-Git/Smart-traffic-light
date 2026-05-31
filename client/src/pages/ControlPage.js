@@ -11,8 +11,16 @@ export function ControlPage({
   selectedIntersection,
   status,
   message,
-  onSendManualControl
+  isAdmin,
+  manualEmergencyEnabled,
+  onSendManualControl,
+  onTriggerEmergency,
+  onClearEmergency
 }) {
+  const subtitle = selectedIntersection
+    ? `${selectedIntersection.name} - ${isAdmin ? 'שליטה ידנית זמינה' : 'צפייה בלבד'}`
+    : 'לא נבחרה צומת';
+
   return (
     <>
       <div className="top-row">
@@ -24,15 +32,27 @@ export function ControlPage({
 
         <div className="card compact">
           <h2>שליטת רמזורים</h2>
-          <p>{selectedIntersection ? `${selectedIntersection.name} - שליטה ידנית ובקרה` : 'לא נבחרה צומת'}</p>
+          <p>{subtitle}</p>
+          {!isAdmin && (
+            <div className="muted" style={{ marginTop: 6 }}>
+              משתמש רגיל: מוצג מצב צומת בלבד ללא כלי שליטה.
+            </div>
+          )}
           {message && <div className="message">{message}</div>}
         </div>
       </div>
 
       <TrafficStatusCard status={status} />
 
-      <div className="dashboard-grid control-grid">
-        <ManualControlPanel onSend={onSendManualControl} />
+      <div className={isAdmin ? 'dashboard-grid control-grid' : 'dashboard-grid'}>
+        {isAdmin && (
+          <ManualControlPanel
+            onSend={onSendManualControl}
+            onTriggerEmergency={onTriggerEmergency}
+            onClearEmergency={onClearEmergency}
+            manualEmergencyEnabled={manualEmergencyEnabled}
+          />
+        )}
         <SignalStatusPanel status={status} />
         <EmergencyAlertsPanel status={status} />
       </div>

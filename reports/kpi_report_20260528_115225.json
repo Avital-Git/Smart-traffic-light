@@ -1,0 +1,28 @@
+{
+  "generated_at": 1779958345.3964806,
+  "server": "http://127.0.0.1:8000",
+  "duration_sec": 300.704,
+  "sampling_interval_sec": 1.0,
+  "intersection_probe": {
+    "intersection_id": 1,
+    "lane_id": 1,
+    "num_lanes": 4
+  },
+  "kpi": {
+    "avg_wait": 1.387,
+    "max_queue": 40,
+    "throughput": 55.669,
+    "emergency_response_time": 0.027
+  },
+  "details": {
+    "wait_samples_count": 297,
+    "queue_samples_count": 297,
+    "queue_cleared_estimate": 279,
+    "emergency_response_samples": [
+      0.02,
+      0.033,
+      0.027
+    ],
+    "throughput_definition": "Estimated queue-clearance throughput (sum of positive drops in total_network_queue) per minute."
+  }
+}

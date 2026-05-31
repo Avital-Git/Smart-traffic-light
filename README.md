@@ -4,7 +4,7 @@
 
 ## 🎯 תמיכה דינאמית בנתיבים - המערכת מגלה את עצמה!
 
-**עדכון גדול:** המערכת כעת **דינאמית לחלוטין** - היא קוראת מ-MySQL כמה מצלמות יש בכל צומת ופועלת בהתאם!
+**עדכון גדול:** המערכת כעת **דינאמית לחלוטין** - היא קוראת מ-SQL Server כמה מצלמות יש בכל צומת ופועלת בהתאם!
 
 - צומת עם 2 מצלמות? ✓ עובד
 - צומת עם 4 מצלמות? ✓ עובד  
@@ -31,8 +31,8 @@ smart-traffic-project/
 ├── website/
 │   ├── src/                        # React ממשק לקוח
 │   └── package.json
-├── database_schema.sql             # MySQL סכימה עם num_cameras
-├── db_intersections.py             # קישור ל-MySQL
+├── database_schema.sql             # SQL סכימה עם num_cameras
+├── db_intersections.py             # קישור ל-SQL Server
 ├── auto_launcher.py                # מפעיל אוטומטי דינאמי
 ├── requirements.txt                # תלויות Python
 ├── GETTING_STARTED.md              # הוראות מלאות
@@ -56,7 +56,7 @@ pip install -r requirements.txt
 
 ```bash
 # בחר אחת:
-mysql -u root -p < database_schema.sql
+sqlcmd -S localhost -E -i database/database_schema_sqlserver.sql
 # או
 python db_intersections.py
 ```
@@ -73,14 +73,14 @@ python -m uvicorn server.app:app --reload --host 127.0.0.1 --port 8000
 python auto_launcher.py
 ```
 
-✅ **סיים!** המערכת קוראת את MySQL ופועלת עם מספר דינאמי של נתיבים!
+✅ **סיים!** המערכת קוראת את SQL Server ופועלת עם מספר דינאמי של נתיבים!
 
 ---
 
 ## 🎬 כיצד זה עובד
 
 ```
-1. MySQL מכיל את num_cameras לכל צומת
+1. SQL Server מכיל את num_cameras לכל צומת
    ↓
 2. auto_launcher.py קורא מהמסד
    ↓
@@ -95,7 +95,7 @@ python auto_launcher.py
 
 ## 📊 דינאמיות בעצמה
 
-### MySQL טבלה
+### SQL Server טבלה
 
 ```sql
 CREATE TABLE intersections (
@@ -125,10 +125,10 @@ num_cameras=6 → RL vector בגודל 25
 
 ## 🛠️ טכנולוגיות
 
-- **Python**: YOLO, OpenCV, FastAPI, MySQL
+- **Python**: YOLO, OpenCV, FastAPI, SQL Server
 - **C++**: RL agent (בבנייה)
 - **React**: ממשק משתמש (בבנייה)
-- **MySQL**: מסד נתונים דינאמי
+- **SQL Server**: מסד נתונים דינאמי
 
 ---
 
@@ -147,11 +147,11 @@ num_cameras=6 → RL vector בגודל 25
 
 **אפשרויות שימוש:**
 
-1. **ישירה מ-MySQL Workbench** (קל ביותר)
+1. **ישירה מ-SQL Server Management Studio (SSMS)** (קל ביותר)
    - פתח את הקובץ → Execute
 
 2. **שורת פקודה**
-   - `mysql -u root -p < database_schema.sql`
+   - `sqlcmd -S localhost -E -i database/database_schema_sqlserver.sql`
 
 3. **דרך Python**
    - `python db_intersections.py`
@@ -166,7 +166,7 @@ num_cameras=6 → RL vector בגודל 25
 # בדיקת שרת
 curl http://127.0.0.1:8000/health
 
-# בדיקת MySQL
+# בדיקת SQL Server
 python db_intersections.py
 ```
 

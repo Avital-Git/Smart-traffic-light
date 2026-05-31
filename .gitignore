@@ -1,0 +1,39 @@
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Logs
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.venv/
+venv/
+
+# Node
+node_modules/
+client/node_modules/
+
+# C/C++ build outputs
+build/
+cpp/build/
+Debug/
+Release/
+*.obj
+*.pdb
+*.ilk
+*.exe
+*.tlog
+
+# CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+
+# Misc generated artifacts
+*.hot-update.js
+*.hot-update.js.map

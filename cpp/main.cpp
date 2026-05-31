@@ -443,6 +443,103 @@ std::vector<int> lane_ids_from_lanes(const std::vector<ParsedLane>& lanes) {
     return ids;
 }
 
+traffic::LaneConflictConfig load_lane_conflicts_from_api(
+    const smart_traffic::HttpClient& client,
+    int intersectionId
+) {
+    traffic::LaneConflictConfig cfg;
+    cfg.source = "/intersection/" + std::to_string(intersectionId) + "/conflicts";
+
+    const std::string payload = client.get(cfg.source);
+    if (payload.empty()) {
+        cfg.source += " (empty response)";
+        return cfg;
+    }
+
+    const auto conflictsArray = extract_json_array(payload, "conflicts");
+    if (!conflictsArray.has_value()) {
+        cfg.source += " (missing conflicts array)";
+        return cfg;
+    }
+
+    std::regex pairRe("\\[\\s*(-?\\d+)\\s*,\\s*(-?\\d+)\\s*\\]");
+    auto begin = std::sregex_iterator(conflictsArray->begin(), conflictsArray->end(), pairRe);
+    auto end = std::sregex_iterator();
+    for (auto it = begin; it != end; ++it) {
+        int a = -1;
+        int b = -1;
+        try {
+            a = std::stoi((*it)[1].str());
+            b = std::stoi((*it)[2].str());
+        } catch (...) {
+            continue;
+        }
+
+        if (a < 0 || b < 0 || a == b) continue;
+        if (a > b) std::swap(a, b);
+        cfg.conflictPairs.emplace_back(a, b);
+    }
+
+    std::sort(cfg.conflictPairs.begin(), cfg.conflictPairs.end());
+    cfg.conflictPairs.erase(std::unique(cfg.conflictPairs.begin(), cfg.conflictPairs.end()), cfg.conflictPairs.end());
+    return cfg;
+}
+
+void print_loaded_conflicts(int intersectionId, const traffic::LaneConflictConfig& cfg) {
+    std::cout << "Loaded conflict pairs for intersection " << intersectionId
+              << " from " << cfg.source
+              << " (pairs=" << cfg.conflictPairs.size() << ")\n";
+    if (cfg.conflictPairs.empty()) {
+        std::cout << "  - No conflict pairs returned by API\n";
+        return;
+    }
+
+    for (const auto& p : cfg.conflictPairs) {
+        std::cout << "  - conflict: lane " << p.first << " <-> lane " << p.second << "\n";
+    }
+}
+
+void run_conflict_enforcement_smoke_test(
+    int intersectionId,
+    const traffic::LaneConflictConfig& cfg
+) {
+    if (cfg.conflictPairs.empty()) {
+        std::cout << "[Conflict smoke test] intersection " << intersectionId
+                  << ": skipped (no conflicts from API)\n";
+        return;
+    }
+
+    const int a = cfg.conflictPairs.front().first;
+    const int b = cfg.conflictPairs.front().second;
+
+    std::vector<traffic::Lane> lanes = {
+        {a, 0, 0.0, 0.0, false},
+        {b, 0, 0.0, 0.0, false},
+    };
+
+    std::vector<traffic::Action> phases = {
+        {900, {a, b}}, // must be rejected
+        {901, {a}},    // should be valid
+    };
+
+    traffic::Junction testJunction(
+        intersectionId,
+        lanes,
+        phases,
+        0.0,
+        10.0,
+        cfg.conflictPairs
+    );
+
+    const bool blocked = !testJunction.applyPhase(900, 0.0);
+    const bool allowed = testJunction.applyPhase(901, 1.0);
+
+    std::cout << "[Conflict smoke test] pair(" << a << "," << b << ")"
+              << " | phase{900:[" << a << "," << b << "]} => " << (blocked ? "BLOCKED" : "ALLOWED")
+              << " | phase{901:[" << a << "]} => " << (allowed ? "ALLOWED" : "BLOCKED")
+              << "\n";
+}
+
 std::string lane_topology_key(const ParsedPacketState& s) {
     std::ostringstream oss;
     oss << s.intersectionId << "|";
@@ -472,9 +569,8 @@ void run_with_server(const std::string& host, int port) {
     const traffic::NeighborCoordConfig neighborConfig = traffic::loadNeighborCoordConfig();
     std::cout << "Neighbor tuning: " << neighborConfig.profileName
               << " (" << neighborConfig.source << ")\n";
-    traffic::LaneConflictConfig laneConflicts = traffic::loadLaneConflictConfig();
-    std::cout << "Lane conflicts config: " << laneConflicts.source
-              << " (pairs=" << laneConflicts.conflictPairs.size() << ")\n";
+    traffic::LaneConflictConfig laneConflicts;
+    laneConflicts.source = "api (pending intersection)";
     traffic::PhaseConfig phaseConfig = traffic::loadPhaseConfig();
     std::cout << "Phase config: " << phaseConfig.source
               << " (intersections=" << phaseConfig.phasesByIntersection.size() << ")\n";
@@ -489,20 +585,20 @@ void run_with_server(const std::string& host, int port) {
 
     std::string currentTopology;
     double nowSec = 0.0;
-    constexpr double kStepSec = 1.0;
+    constexpr double kStepSec = 0.5;
 
-    for (int i = 0; i < 20; ++i) {
+    while (true) {
         const std::string packet = client.get("/intersection/1/packet");
         if (packet.empty()) {
             std::cerr << "Packet request failed\n";
-            std::this_thread::sleep_for(std::chrono::seconds(2));
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
             continue;
         }
 
         ParsedPacketState parsed;
         if (!parse_packet_state(packet, parsed, neighborAuth)) {
             std::cerr << "Failed to parse /packet response\n";
-            std::this_thread::sleep_for(std::chrono::seconds(2));
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
             continue;
         }
 
@@ -515,11 +611,13 @@ void run_with_server(const std::string& host, int port) {
         }
 
         if (parsed.intersectionId != activeConflictIntersection) {
-            laneConflicts = traffic::loadLaneConflictConfigForIntersection(parsed.intersectionId);
+            laneConflicts = load_lane_conflicts_from_api(client, parsed.intersectionId);
             activeConflictIntersection = parsed.intersectionId;
-            std::cout << "Lane conflicts config for intersection " << parsed.intersectionId
+            std::cout << "Lane conflicts API for intersection " << parsed.intersectionId
                       << ": " << laneConflicts.source
                       << " (pairs=" << laneConflicts.conflictPairs.size() << ")\n";
+            print_loaded_conflicts(parsed.intersectionId, laneConflicts);
+            run_conflict_enforcement_smoke_test(parsed.intersectionId, laneConflicts);
         }
 
         const std::string topology = lane_topology_key(parsed);
@@ -548,7 +646,7 @@ void run_with_server(const std::string& host, int port) {
             }
             if (phases.empty()) {
                 std::cerr << "No valid phases from packet lanes\n";
-                std::this_thread::sleep_for(std::chrono::seconds(2));
+                std::this_thread::sleep_for(std::chrono::milliseconds(500));
                 continue;
             }
 
@@ -556,8 +654,8 @@ void run_with_server(const std::string& host, int port) {
                 parsed.intersectionId,
                 lanes,
                 phases,
-                5.0,
-                30.0,
+                3.0,   // minGreenSec: 3 seconds - enables fast switching on empty lanes
+                45.0,  // maxGreenSec: 45 seconds - prevents starvation
                 laneConflicts.conflictPairs
             );
             currentTopology = topology;
@@ -632,11 +730,27 @@ void run_with_server(const std::string& host, int port) {
                   << " | post=" << (postResp.empty() ? "failed" : "ok")
                   << "\n";
 
-        std::this_thread::sleep_for(std::chrono::seconds(2));
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
 
     const bool saved = agent.saveQTable(qTablePath);
     std::cout << "Q-table save: " << (saved ? "ok" : "failed") << " (" << qTablePath << ")\n";
+}
+
+void run_conflict_check_once(const std::string& host, int port, int intersectionId) {
+    std::cout << "\n=== CONFLICT CHECK MODE (API) ===\n";
+    std::cout << "Server: " << host << ":" << port << " | intersection=" << intersectionId << "\n\n";
+
+    smart_traffic::HttpClient client(host, port);
+    const std::string health = client.get("/health");
+    if (health.empty()) {
+        std::cerr << "Cannot connect to server. Run FastAPI first.\n";
+        return;
+    }
+
+    traffic::LaneConflictConfig laneConflicts = load_lane_conflicts_from_api(client, intersectionId);
+    print_loaded_conflicts(intersectionId, laneConflicts);
+    run_conflict_enforcement_smoke_test(intersectionId, laneConflicts);
 }
 
 } // namespace
@@ -651,6 +765,12 @@ int main(int argc, char* argv[]) {
         std::string host = argc > 2 ? argv[2] : "127.0.0.1";
         int port = argc > 3 ? std::atoi(argv[3]) : 8000;
         run_with_server(host, port);
+    } else if (argc > 1 && std::string(argv[1]) == "--conflict-check") {
+        std::string host = argc > 2 ? argv[2] : "127.0.0.1";
+        int port = argc > 3 ? std::atoi(argv[3]) : 8000;
+        int intersectionId = argc > 4 ? std::atoi(argv[4]) : 1;
+        if (intersectionId <= 0) intersectionId = 1;
+        run_conflict_check_once(host, port, intersectionId);
     } else if (argc > 1 && std::string(argv[1]) == "--selftest") {
         const bool ok = traffic_tests::run_all_self_tests();
         return ok ? 0 : 1;
@@ -660,6 +780,7 @@ int main(int argc, char* argv[]) {
         std::cout << "Usage:\n";
         std::cout << "  smart_traffic_controller.exe --simulate\n";
         std::cout << "  smart_traffic_controller.exe --server [host] [port]\n\n";
+        std::cout << "  smart_traffic_controller.exe --conflict-check [host] [port] [intersection_id]\n\n";
         std::cout << "  smart_traffic_controller.exe --selftest\n\n";
         traffic_sim::run_simulation_comparison_verbose();
     }

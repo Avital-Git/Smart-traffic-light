@@ -1,13 +1,4 @@
-import {
-  CartesianGrid,
-  Legend,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis
-} from 'recharts';
+import { TrafficChartPanel } from '../components/TrafficChartPanel';
 
 function formatTime(timestampSec) {
   if (!timestampSec) return '—';
@@ -66,24 +57,8 @@ export function LiveDashboardPage({ metrics, metricsHistory, events, selectedInt
       </div>
 
       <div className="live-grid">
-        <div className="card live-card live-chart-card">
-          <h2>מגמת KPI בזמן אמת</h2>
-          <div className="chart-wrap live-chart-wrap">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={metricsHistory || []}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="timeLabel" />
-                <YAxis yAxisId="left" />
-                <YAxis yAxisId="right" orientation="right" />
-                <Tooltip />
-                <Legend />
-                <Line yAxisId="left" type="monotone" dataKey="totalQueue" name="תור רשת" stroke="#2563eb" strokeWidth={2} dot={false} />
-                <Line yAxisId="left" type="monotone" dataKey="avgWait" name="המתנה ממוצעת" stroke="#dc2626" strokeWidth={2} dot={false} />
-                <Line yAxisId="right" type="monotone" dataKey="activeIntersections" name="צמתים פעילים" stroke="#16a34a" strokeWidth={2} dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-          <p className="muted">שומר עד 30 נקודות היסטוריות מהשרת (polling כל 10 שניות).</p>
+        <div className="live-chart-card">
+          <TrafficChartPanel status={status} />
         </div>
 
         <div className="card live-card">

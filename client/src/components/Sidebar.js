@@ -4,11 +4,20 @@ import { NavLink } from 'react-router-dom';
 const NAV_ITEMS = [
   { to: '/live', icon: '🟢', label: 'Live Dashboard' },
   { to: '/overview', icon: '📊', label: 'סקירה כללית' },
+  { to: '/network', icon: '🕸️', label: 'תצוגת רשת' },
   { to: '/control',  icon: '🎛️', label: 'שליטה ידנית'  },
+  { to: '/admin', icon: '🔐', label: 'מצב מנהל' },
 ];
 
-export function Sidebar({ selectedIntersection, connectionStatus }) {
+export function Sidebar({ selectedIntersection, connectionStatus, isAdmin }) {
   const [logoSrc, setLogoSrc] = useState('/logo.png');
+
+  const visibleNavItems = NAV_ITEMS.filter((item) => {
+    if (item.to === '/control') {
+      return Boolean(isAdmin);
+    }
+    return true;
+  });
 
   const handleLogoError = () => {
     if (logoSrc !== '/logo.svg') {
@@ -30,7 +39,7 @@ export function Sidebar({ selectedIntersection, connectionStatus }) {
 
       {/* ── Navigation ── */}
       <nav className="sidebar-nav">
-        {NAV_ITEMS.map(({ to, icon, label }) => (
+        {visibleNavItems.map(({ to, icon, label }) => (
           <NavLink
             key={to}
             to={to}

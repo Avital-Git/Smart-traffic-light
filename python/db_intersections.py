@@ -135,6 +135,43 @@ def update_intersection_cameras(intersection_id: int, num_cameras: int):
         conn.close()
 
 
+def update_intersection(intersection_id: int, fields: dict):
+    """עדכון שדות בצומת לפי whitelist בלבד."""
+    if not fields:
+        return
+
+    allowed_fields = {
+        "name": "name",
+        "num_cameras": "num_cameras",
+        "city": "city",
+        "region": "region",
+        "description": "description",
+    }
+
+    set_parts = []
+    values = []
+    for key, value in fields.items():
+        column_name = allowed_fields.get(key)
+        if column_name is None:
+            continue
+        set_parts.append(f"{column_name} = ?")
+        values.append(value)
+
+    if not set_parts:
+        return
+
+    values.append(intersection_id)
+    query = f"UPDATE dbo.intersections SET {', '.join(set_parts)} WHERE intersection_id = ?"
+
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(query, tuple(values))
+        conn.commit()
+    finally:
+        conn.close()
+
+
 if __name__ == "__main__":
     print("═" * 50)
     print("  בודק חיבור ל-SQL Server...")

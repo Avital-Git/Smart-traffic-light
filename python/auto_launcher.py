@@ -1,15 +1,12 @@
 """
 auto_launcher.py
 ----------------
-מפעיל אוטומטי את מערכת ניהול התנועה.
-אביטל חדד | מכללת בנות בת שבע
+Auto launcher for Smart Traffic Management System
+Auto launcher that discovers and starts simulators for each intersection
 
-מטרה: לגלות אוטומטית כמה מצלמות יש בכל צומת מתוך מסד הנתונים (SQL Server),
-       ולהפעיל IntersectionAnalyzer או סימולציה ויזואלית בהתאם.
-
-מצבי הפעלה:
-  --simulation   מצב סימולציה (בלי מצלמה אמיתית, ברירת מחדל)
-  --camera       מצב מצלמה אמיתית (דורש מצלמה מחוברת)
+Usage:
+  --simulation   Simulation mode (no real camera, default)
+  --camera       Real camera mode (requires connected camera)
 """
 
 import sys
@@ -38,21 +35,38 @@ from vision.intersection_vision import (
 # ══════════════════════════════════════════════════════
 
 class SimulatedIntersection:
-    """סימולציית צומת אחת — מייצרת נתונים אקראיים ושולחת לשרת."""
+    """Simulated intersection - generates random data and sends to server"""
 
     def __init__(self, intersection_id: int, num_lanes: int, server_url: str):
         self.intersection_id = intersection_id
         self.num_lanes = num_lanes
         self.server_url = server_url
         self.waiting_times = [0.0] * num_lanes
+        self.queue_counts = [random.randint(2, 10) for _ in range(num_lanes)]
         self.width, self.height = 800, 500
         self.lane_zones = build_lane_zones(self.width, self.height, num_lanes)
 
-    def step(self) -> IntersectionState:
-        """מחולל מצב אקראי אחד."""
+    def _lane_is_green(self, action_text: str, lane_id: int) -> bool:
+        if action_text == "Hold":
+            return False
+        if action_text == "Phase0":
+            return lane_id % 2 == 0
+        if action_text == "Phase1":
+            return lane_id % 2 == 1
+        return False
+
+    def step(self, action_text: str = "") -> IntersectionState:
+        """Generate one simulation state with dynamics affected by active phase"""
         lanes = []
         for lane_id in range(self.num_lanes):
-            vc = random.randint(0, 12)
+            is_green = self._lane_is_green(action_text, lane_id)
+
+            arrivals = random.randint(0, 3)
+            departures = random.randint(2, 6) if is_green else random.randint(0, 1)
+
+            vc = max(0, min(25, self.queue_counts[lane_id] + arrivals - departures))
+            self.queue_counts[lane_id] = vc
+
             density = min(100.0, vc * random.uniform(7.0, 12.0))
             self.waiting_times[lane_id] = (
                 self.waiting_times[lane_id] + 1.0 if vc > 0 else 0.0
@@ -73,7 +87,7 @@ class SimulatedIntersection:
         )
 
     def draw(self, state: IntersectionState, action_text: str = "") -> np.ndarray:
-        """מציירת frame ויזואלי לצומת."""
+        """Draw a visual frame for intersection"""
         frame = np.zeros((self.height, self.width, 3), dtype=np.uint8)
         frame[:] = (30, 30, 30)
 
@@ -106,7 +120,7 @@ class SimulatedIntersection:
 # ══════════════════════════════════════════════════════
 
 class AutoLauncher:
-    """מגלה צמתים ב-SQL Server ומשגרת סימולציות או analyzers."""
+    """Discovers intersections in SQL Server and starts simulations or analyzers"""
 
     def __init__(self, server_url: str = "http://127.0.0.1:8000/state", use_camera: bool = False):
         self.server_url = server_url
@@ -117,27 +131,28 @@ class AutoLauncher:
         self.threads = []
 
     def initialize_from_database(self):
-        """קוראת צמתים מ-SQL Server."""
+        """Read intersections from SQL Server"""
         try:
             rows = fetch_intersections()
-            print(f"[AUTO-LAUNCHER] ✅ נמצאו {len(rows)} צמתים ב-SQL Server")
+            print(f"[AUTO-LAUNCHER] OK - Found {len(rows)} intersections in SQL Server")
             for row in rows:
                 iid = row["intersection_id"]
                 nc = row.get("num_cameras", 4)
                 name = row.get("name", "")
-                print(f"  #{iid}: {name} — {nc} מצלמות")
+                print(f"  #{iid}: {name} - {nc} cameras")
                 self.intersections_config.append({"id": iid, "num_cameras": nc, "name": name})
         except Exception as e:
-            print(f"[AUTO-LAUNCHER] ⚠ לא הצלחתי להתחבר ל-DB: {e}")
-            print("[AUTO-LAUNCHER] משתמשת בברירת מחדל — 4 צמתים")
+            print(f"[AUTO-LAUNCHER] WARN - Failed to connect to DB: {e}")
+            print("[AUTO-LAUNCHER] Using default - 4 intersections")
             defaults = [(1, 4), (2, 3), (3, 6), (4, 2)]
             for iid, nc in defaults:
-                self.intersections_config.append({"id": iid, "num_cameras": nc, "name": f"צומת {iid}"})
+                self.intersections_config.append({"id": iid, "num_cameras": nc, "name": f"Intersection {iid}"})
 
     def _run_simulation(self, sim: SimulatedIntersection, window_name: str):
-        """לולאת סימולציה לצומת בודדת."""
+        """Simulation loop for a single intersection"""
+        last_action_text = ""
         while True:
-            state = sim.step()
+            state = sim.step(last_action_text)
             resp = post_state_to_server(state, self.server_url)
             action_text = ""
             if resp:
@@ -146,6 +161,8 @@ class AutoLauncher:
                     action_text = data.get("action", "")
                 except Exception:
                     pass
+            if action_text:
+                last_action_text = action_text
             frame = sim.draw(state, action_text)
             cv2.imshow(window_name, frame)
             key = cv2.waitKey(1000) & 0xFF
@@ -153,8 +170,8 @@ class AutoLauncher:
                 break
 
     def _run_analyzer(self, analyzer: IntersectionAnalyzer, intersection_id: int):
-        """לולאת analyzer אמיתי לצומת בודדת."""
-        print(f"[Intersection {intersection_id}] התחלתי לולאת ניתוח")
+        """Real analyzer loop for a single intersection"""
+        print(f"[Intersection {intersection_id}] Started analysis loop")
         try:
             while True:
                 state = analyzer.analyze_frame()
@@ -165,26 +182,26 @@ class AutoLauncher:
         except KeyboardInterrupt:
             pass
         except Exception as e:
-            print(f"[Intersection {intersection_id}] שגיאה: {e}")
+            print(f"[Intersection {intersection_id}] Error: {e}")
         finally:
             analyzer.release()
 
     def run(self):
-        """הפעלה מלאה."""
-        print("═" * 60)
-        print("    🚦 מערכת ניהול תנועה חכמה — מפעיל אוטומטי")
-        print("═" * 60)
+        """Full execution"""
+        print("=" * 60)
+        print("    Smart Traffic System - Auto Launcher")
+        print("=" * 60)
 
         self.initialize_from_database()
 
         if not self.intersections_config:
-            print("[AUTO-LAUNCHER] אין צמתים להפעלה!")
+            print("[AUTO-LAUNCHER] No intersections to run!")
             return
 
         mode = "CAMERA" if self.use_camera else "SIMULATION"
-        print(f"\n[AUTO-LAUNCHER] מצב: {mode}")
-        print(f"[AUTO-LAUNCHER] שרת: {self.server_url}")
-        print(f"[AUTO-LAUNCHER] צמתים: {len(self.intersections_config)}\n")
+        print(f"\n[AUTO-LAUNCHER] Mode: {mode}")
+        print(f"[AUTO-LAUNCHER] Server: {self.server_url}")
+        print(f"[AUTO-LAUNCHER] Intersections: {len(self.intersections_config)}\n")
 
         if self.use_camera:
             for cfg in self.intersections_config:
@@ -199,7 +216,7 @@ class AutoLauncher:
                     t.start()
                     self.threads.append(t)
                 except Exception as e:
-                    print(f"[AUTO-LAUNCHER] נכשל ליצור analyzer לצומת {iid}: {e}")
+                    print(f"[AUTO-LAUNCHER] Failed to create analyzer for intersection {iid}: {e}")
         else:
             for cfg in self.intersections_config:
                 iid, nc = cfg["id"], cfg["num_cameras"]
@@ -210,20 +227,20 @@ class AutoLauncher:
                 t.start()
                 self.threads.append(t)
 
-        print("[AUTO-LAUNCHER] כל הצמתים רצים. לחצי Q בחלון או Ctrl+C לעצירה.\n")
+        print("[AUTO-LAUNCHER] All intersections running. Press Q in window or Ctrl+C to stop.\n")
         try:
             for t in self.threads:
                 t.join()
         except KeyboardInterrupt:
-            print("\n[AUTO-LAUNCHER] עצירה מבוקשת.")
+            print("\n[AUTO-LAUNCHER] Stopping.")
         finally:
             cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Smart Traffic Auto Launcher")
-    parser.add_argument("--camera", action="store_true", help="שימוש במצלמה אמיתית")
-    parser.add_argument("--server", default="http://127.0.0.1:8000/state", help="כתובת שרת")
+    parser.add_argument("--camera", action="store_true", help="Use real camera")
+    parser.add_argument("--server", default="http://127.0.0.1:8000/state", help="Server address")
     args = parser.parse_args()
 
     launcher = AutoLauncher(server_url=args.server, use_camera=args.camera)

@@ -9,3 +9,4 @@ websockets
 wsprotocryptography
 python-dotenv
 python-multipart
+PyJWT

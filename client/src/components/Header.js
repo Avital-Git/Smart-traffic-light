@@ -15,12 +15,6 @@ export function Header() {
         >
           דף נתונים
         </NavLink>
-        <NavLink
-          to="/control"
-          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-        >
-          דף שליטה
-        </NavLink>
       </nav>
     </header>
   );

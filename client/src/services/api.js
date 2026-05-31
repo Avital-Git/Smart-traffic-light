@@ -1,5 +1,13 @@
 const API_BASE = 'http://127.0.0.1:8000';
 const WS_BASE = API_BASE.replace(/^http/i, 'ws');
+const ADMIN_TOKEN_KEY = 'smart_traffic_admin_token';
+
+function authHeaders(base = {}) {
+  const token = window.localStorage.getItem(ADMIN_TOKEN_KEY);
+  return token
+    ? { ...base, Authorization: `Bearer ${token}` }
+    : base;
+}
 
 const mockIntersections = [
   { id: 1, code: 'J-001', name: 'צומת מרכזי', city: 'באר שבע' },
@@ -91,34 +99,38 @@ export async function getIntersections() {
   return safeFetch(`${API_BASE}/intersections`, () => mockIntersections);
 }
 
-export async function getNetworkMetrics() {
-  return safeFetch(`${API_BASE}/metrics/summary`, () => ({
-    timestamp: Date.now() / 1000,
-    intersection_count: 0,
-    total_network_queue: 0,
-    avg_network_waiting_sec: 0,
-    intersections: [],
-    security: {
-      emergency_keys_source: 'fallback',
-      neighbor_message_auth_source: 'fallback'
+export async function getSystemConfig() {
+  return safeFetch(`${API_BASE}/config`, () => ({
+    hardware: {
+      real_mode: false,
+      manual_emergency_enabled: true
     }
   }));
 }
 
+export async function getNetworkMetrics() {
+  return safeFetch(`${API_BASE}/metrics/summary`, () => null);
+}
+
+export async function getIntersectionLayout(intersectionId) {
+  return safeFetch(`${API_BASE}/intersection/${intersectionId}/layout`, () => null);
+}
+
 export async function getIntersectionStatus(intersectionId) {
-  const [state, action] = await Promise.all([
+  const [state, action, layout] = await Promise.all([
     safeFetch(`${API_BASE}/intersection/${intersectionId}`, () => null),
-    safeFetch(`${API_BASE}/intersection/${intersectionId}/action`, () => null)
+    safeFetch(`${API_BASE}/intersection/${intersectionId}/action`, () => null),
+    getIntersectionLayout(intersectionId)
   ]);
 
   if (!state) {
-    return buildMockStatus(intersectionId);
+    return null;
   }
 
-  return mapStateToStatus(state, action, intersectionId);
+  return mapStateToStatus(state, action, intersectionId, layout);
 }
 
-function mapStateToStatus(state, action, intersectionId) {
+function mapStateToStatus(state, action, intersectionId, layout) {
   const resolvedIntersectionId = state?.intersection_id ?? intersectionId;
   const currentPhase = action?.action || 'Hold';
   const lanes = state?.lanes || [];
@@ -126,6 +138,20 @@ function mapStateToStatus(state, action, intersectionId) {
   const avgWaitSec = lanes.length > 0
     ? Math.round(lanes.reduce((sum, lane) => sum + (lane.waiting_time_sec || 0), 0) / lanes.length)
     : 0;
+
+  const laneDirections = Array.isArray(layout?.lane_directions)
+    ? layout.lane_directions
+    : [];
+
+  const directionLabel = (laneId) => {
+    const d = laneDirections[laneId];
+    if (!d) return `נתיב ${laneId}`;
+    if (d === 'N') return 'צפון';
+    if (d === 'S') return 'דרום';
+    if (d === 'E') return 'מזרח';
+    if (d === 'W') return 'מערב';
+    return `נתיב ${laneId}`;
+  };
 
   return {
     intersectionId: resolvedIntersectionId,
@@ -135,9 +161,11 @@ function mapStateToStatus(state, action, intersectionId) {
     avgWaitSec,
     manualOverrideEnabled: false,
     emergencyActive: Boolean(state.emergency_signal?.active),
+    emergencyLaneId: state.emergency_signal?.lane_id ?? null,
+    emergencyVehicleId: state.emergency_signal?.vehicle_id ?? null,
     updatedAt: new Date((state.timestamp || Date.now() / 1000) * 1000).toLocaleString('he-IL'),
     signals: lanes.map((lane) => ({
-      direction: `נתיב ${lane.lane_id}`,
+      direction: directionLabel(lane.lane_id),
       color: laneToSignalColor(currentPhase, lane.lane_id),
       queue: lane.vehicle_count,
       waitingSec: lane.waiting_time_sec
@@ -161,7 +189,9 @@ function mapStateToStatus(state, action, intersectionId) {
           message: 'אין התרעות חירום פעילות',
           timestamp: new Date().toLocaleTimeString('he-IL')
         }],
-    lanes
+    lanes,
+    laneDirections,
+    neighbors: Array.isArray(layout?.neighbors) ? layout.neighbors : []
   };
 }
 
@@ -170,6 +200,11 @@ export function subscribeIntersectionUpdates(intersectionId, onUpdate) {
     return () => {};
   }
 
+  let cachedLayout = null;
+  getIntersectionLayout(intersectionId).then((layout) => {
+    cachedLayout = layout;
+  });
+
   const socket = new WebSocket(`${WS_BASE}/ws/intersection/${intersectionId}`);
 
   socket.onmessage = (event) => {
@@ -177,13 +212,21 @@ export function subscribeIntersectionUpdates(intersectionId, onUpdate) {
       const message = JSON.parse(event.data);
       const payload = message?.payload || {};
 
+      // Guard against cross-intersection events that may arrive on shared broadcasts.
+      if (
+        message?.intersection_id != null &&
+        Number(message.intersection_id) !== Number(intersectionId)
+      ) {
+        return;
+      }
+
       if (message.event === 'state_updated' && payload.state) {
-        onUpdate(mapStateToStatus(payload.state, payload.action, intersectionId), message);
+        onUpdate(mapStateToStatus(payload.state, payload.action, intersectionId, cachedLayout), message);
         return;
       }
 
       if (message.event === 'welcome' && payload.state) {
-        onUpdate(mapStateToStatus(payload.state, payload.action, intersectionId), message);
+        onUpdate(mapStateToStatus(payload.state, payload.action, intersectionId, cachedLayout), message);
       }
     } catch {
       // Ignore malformed events
@@ -244,12 +287,81 @@ export async function sendManualControl(intersectionId, action, enabled) {
 
     const response = await fetch(`${API_BASE}/intersection/${intersectionId}/action`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify(body)
     });
 
-    return { ok: response.ok };
+    if (response.ok) {
+      return { ok: true };
+    }
+
+    let detail = 'שליחת הפקודה נכשלה';
+    try {
+      const payload = await response.json();
+      if (payload?.detail) {
+        detail = String(payload.detail);
+      }
+    } catch {
+      // ignore parse errors
+    }
+
+    return { ok: false, detail };
   } catch {
-    return { ok: false };
+    return { ok: false, detail: 'שגיאת תקשורת לשרת' };
+  }
+}
+
+export async function triggerEmergency(intersectionId, laneId = 0, vehicleId = 'AMB001') {
+  try {
+    const response = await fetch(`${API_BASE}/intersection/${intersectionId}/simulate-emergency`, {
+      method: 'POST',
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ lane_id: laneId, vehicle_id: vehicleId })
+    });
+
+    if (response.ok) {
+      return { ok: true };
+    }
+
+    let detail = 'שליחת חירום נכשלה';
+    try {
+      const payload = await response.json();
+      if (payload?.detail) {
+        detail = String(payload.detail);
+      }
+    } catch {
+      // ignore parse errors
+    }
+
+    return { ok: false, detail };
+  } catch {
+    return { ok: false, detail: 'שגיאת תקשורת לשרת' };
+  }
+}
+
+export async function clearEmergency(intersectionId) {
+  try {
+    const response = await fetch(`${API_BASE}/intersection/${intersectionId}/clear-emergency`, {
+      method: 'POST',
+      headers: authHeaders()
+    });
+
+    if (response.ok) {
+      return { ok: true };
+    }
+
+    let detail = 'ניקוי חירום נכשל';
+    try {
+      const payload = await response.json();
+      if (payload?.detail) {
+        detail = String(payload.detail);
+      }
+    } catch {
+      // ignore parse errors
+    }
+
+    return { ok: false, detail };
+  } catch {
+    return { ok: false, detail: 'שגיאת תקשורת לשרת' };
   }
 }

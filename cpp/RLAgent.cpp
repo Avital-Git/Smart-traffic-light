@@ -1,14 +1,213 @@
 #include "RLAgent.h"
+#include "ConflictConfig.h"
 
 #include <algorithm>
 #include <fstream>
 #include <iomanip>
 #include <limits>
+#include <memory>
 #include <sstream>
 #include <cmath>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace traffic {
+namespace {
+
+constexpr double kStrongStarvationBoost = 50.0;
+
+std::uint64_t conflict_key(int laneA, int laneB) {
+    if (laneA > laneB) std::swap(laneA, laneB);
+    const std::uint64_t a = static_cast<std::uint32_t>(laneA);
+    const std::uint64_t b = static_cast<std::uint32_t>(laneB);
+    return (a << 32) | b;
+}
+
+const std::unordered_set<std::uint64_t>& global_conflicts() {
+    static const std::unordered_set<std::uint64_t> conflicts = [] {
+        const auto cfg = loadLaneConflictConfig();
+        std::unordered_set<std::uint64_t> out;
+        out.reserve(cfg.conflictPairs.size());
+        for (const auto& [a, b] : cfg.conflictPairs) {
+            if (a < 0 || b < 0 || a == b) continue;
+            out.insert(conflict_key(a, b));
+        }
+        return out;
+    }();
+    return conflicts;
+}
+
+bool action_is_safe(const Action& action) {
+    std::unordered_set<int> seen;
+    for (int lane : action.greenLanes) {
+        if (!seen.insert(lane).second) {
+            return false;
+        }
+    }
+
+    const auto& conflicts = global_conflicts();
+    for (std::size_t i = 0; i < action.greenLanes.size(); ++i) {
+        for (std::size_t j = i + 1; j < action.greenLanes.size(); ++j) {
+            if (conflicts.find(conflict_key(action.greenLanes[i], action.greenLanes[j])) != conflicts.end()) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+struct DecisionContext {
+    const JunctionState& state;
+    const std::vector<Action>& allActions;
+    std::vector<Action> candidateActions;
+    std::optional<int> emergencyPhase;
+    const TrafficThresholdConfig& thresholds;
+};
+
+struct DecisionResult {
+    bool decided = false;
+    int phaseId = -1;
+    std::unordered_map<int, double> phaseBoost;
+};
+
+class IRule {
+public:
+    virtual ~IRule() = default;
+    virtual void apply(DecisionContext& ctx, DecisionResult& result) const = 0;
+};
+
+class EmergencyRule final : public IRule {
+public:
+    void apply(DecisionContext& ctx, DecisionResult& result) const override {
+        if (result.decided) return;
+        if (!ctx.state.emergencyVehicleActive) return;
+        if (!ctx.emergencyPhase.has_value()) return;
+        result.decided = true;
+        result.phaseId = *ctx.emergencyPhase;
+    }
+};
+
+class MutualExclusionRule final : public IRule {
+public:
+    void apply(DecisionContext& ctx, DecisionResult& result) const override {
+        if (result.decided) return;
+        std::vector<Action> safe;
+        safe.reserve(ctx.candidateActions.size());
+        for (const auto& action : ctx.candidateActions) {
+            if (action_is_safe(action)) {
+                safe.push_back(action);
+            }
+        }
+        ctx.candidateActions = std::move(safe);
+    }
+};
+
+class StarvationRule final : public IRule {
+public:
+    void apply(DecisionContext& ctx, DecisionResult& result) const override {
+        if (result.decided) return;
+        if (ctx.state.laneIds.empty() || ctx.state.waitingTimes.empty()) return;
+
+        const std::size_t n = std::min(ctx.state.laneIds.size(), ctx.state.waitingTimes.size());
+        std::size_t longestIdx = 0;
+        double longestWait = -1.0;
+
+        for (std::size_t i = 0; i < n; ++i) {
+            if (ctx.state.waitingTimes[i] > longestWait) {
+                longestWait = ctx.state.waitingTimes[i];
+                longestIdx = i;
+            }
+        }
+
+        if (longestWait > ctx.thresholds.waitingTimeSec.mediumMax) {
+            const int longestLaneId = ctx.state.laneIds[longestIdx];
+            for (const auto& action : ctx.candidateActions) {
+                if (std::find(action.greenLanes.begin(), action.greenLanes.end(), longestLaneId) != action.greenLanes.end()) {
+                    result.decided = true;
+                    result.phaseId = action.phaseId;
+                    return;
+                }
+            }
+            return;
+        }
+
+        for (std::size_t i = 0; i < n; ++i) {
+            if (ctx.state.waitingTimes[i] <= ctx.thresholds.waitingTimeSec.lowMax) {
+                continue;
+            }
+
+            const int laneId = ctx.state.laneIds[i];
+            for (const auto& action : ctx.candidateActions) {
+                if (std::find(action.greenLanes.begin(), action.greenLanes.end(), laneId) != action.greenLanes.end()) {
+                    result.phaseBoost[action.phaseId] += kStrongStarvationBoost;
+                }
+            }
+        }
+    }
+};
+
+class DeadlockRule final : public IRule {
+public:
+    void apply(DecisionContext& ctx, DecisionResult& result) const override {
+        if (result.decided) return;
+        if (!ctx.candidateActions.empty()) return;
+        if (ctx.allActions.empty()) return;
+
+        const std::size_t n = std::min(ctx.state.laneIds.size(), ctx.state.vehicleCounts.size());
+        if (n == 0) {
+            result.decided = true;
+            result.phaseId = ctx.allActions.front().phaseId;
+            return;
+        }
+
+        std::size_t leastLoadedIdx = 0;
+        int leastLoad = std::numeric_limits<int>::max();
+        for (std::size_t i = 0; i < n; ++i) {
+            if (ctx.state.vehicleCounts[i] < leastLoad) {
+                leastLoad = ctx.state.vehicleCounts[i];
+                leastLoadedIdx = i;
+            }
+        }
+
+        const int laneId = ctx.state.laneIds[leastLoadedIdx];
+        for (const auto& action : ctx.allActions) {
+            if (std::find(action.greenLanes.begin(), action.greenLanes.end(), laneId) != action.greenLanes.end()) {
+                result.decided = true;
+                result.phaseId = action.phaseId;
+                return;
+            }
+        }
+
+        result.decided = true;
+        result.phaseId = ctx.allActions.front().phaseId;
+    }
+};
+
+class DecisionTree final {
+public:
+    DecisionTree() {
+        rules_.push_back(std::make_unique<EmergencyRule>());
+        rules_.push_back(std::make_unique<MutualExclusionRule>());
+        rules_.push_back(std::make_unique<StarvationRule>());
+        rules_.push_back(std::make_unique<DeadlockRule>());
+    }
+
+    DecisionResult evaluate(DecisionContext& ctx) const {
+        DecisionResult result;
+        for (const auto& rule : rules_) {
+            rule->apply(ctx, result);
+            if (result.decided) {
+                return result;
+            }
+        }
+        return result;
+    }
+
+private:
+    std::vector<std::unique_ptr<IRule>> rules_;
+};
+
+} // namespace
 
 RLAgent::RLAgent(RLConfig cfg, TrafficThresholdConfig thresholds, NeighborCoordConfig neighborConfig)
     : cfg_(cfg), thresholds_(std::move(thresholds)), neighborCfg_(std::move(neighborConfig)) {}
@@ -20,29 +219,59 @@ int RLAgent::selectAction(
 ) {
     if (validActions.empty()) return -1;
 
-    // Emergency interrupt has highest priority
-    if (state.emergencyVehicleActive && emergencyPhase.has_value()) {
-        return *emergencyPhase;
+    DecisionContext ctx{state, validActions, validActions, emergencyPhase, thresholds_};
+    const DecisionTree tree;
+    const DecisionResult decision = tree.evaluate(ctx);
+
+    if (decision.decided) {
+        return decision.phaseId;
+    }
+
+    if (ctx.candidateActions.empty()) {
+        return -1;
     }
 
     const std::string key = encodeState(state);
     auto& q = qValuesFor(key, validActions.size());
 
-    std::uniform_real_distribution<double> p(0.0, 1.0);
-    if (p(rng_) < cfg_.epsilon) {
-        // Exploration path uses deterministic rule-based decision tree instead of pure random,
-        // making thresholds operational in live policy behavior.
-        return selectRuleBasedAction(state, validActions);
-    }
-
-    const double bestQ = *std::max_element(q.begin(), q.end());
-    std::vector<int> bestIndices;
-    bestIndices.reserve(q.size());
-    for (int i = 0; i < static_cast<int>(q.size()); ++i) {
-        if (std::abs(q[i] - bestQ) < 1e-12) {
-            bestIndices.push_back(i);
+    std::vector<int> candidateIndices;
+    candidateIndices.reserve(ctx.candidateActions.size());
+    for (const auto& action : ctx.candidateActions) {
+        const int idx = actionIndexByPhaseId(validActions, action.phaseId);
+        if (idx >= 0) {
+            candidateIndices.push_back(idx);
         }
     }
+    if (candidateIndices.empty()) {
+        return -1;
+    }
+
+    std::uniform_real_distribution<double> p(0.0, 1.0);
+    if (p(rng_) < cfg_.epsilon) {
+        std::uniform_int_distribution<int> pick(0, static_cast<int>(candidateIndices.size()) - 1);
+        const int idx = candidateIndices[pick(rng_)];
+        return phaseIdByActionIndex(validActions, idx);
+    }
+
+    double bestQ = -std::numeric_limits<double>::infinity();
+    std::vector<int> bestIndices;
+    bestIndices.reserve(candidateIndices.size());
+
+    for (int idx : candidateIndices) {
+        const int phaseId = phaseIdByActionIndex(validActions, idx);
+        const auto boostIt = decision.phaseBoost.find(phaseId);
+        const double boost = (boostIt != decision.phaseBoost.end()) ? boostIt->second : 0.0;
+        const double value = q[idx] + boost;
+
+        if (value > bestQ + 1e-12) {
+            bestQ = value;
+            bestIndices.clear();
+            bestIndices.push_back(idx);
+        } else if (std::abs(value - bestQ) < 1e-12) {
+            bestIndices.push_back(idx);
+        }
+    }
+
     if (bestIndices.empty()) {
         return phaseIdByActionIndex(validActions, 0);
     }

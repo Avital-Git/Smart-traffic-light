@@ -64,27 +64,40 @@ def is_port_available(host: str, port: int) -> bool:
         return sock.connect_ex((host, port)) != 0
 
 
-def start_process(cmd: List[str], cwd: Path, name: str) -> subprocess.Popen:
+def start_process(cmd: List[str], cwd: Path, name: str, env: Dict[str, str] | None = None) -> subprocess.Popen:
     print(f"[E2E] Starting {name}: {' '.join(cmd)}")
     return subprocess.Popen(
         cmd,
         cwd=str(cwd),
+        env=env,
         creationflags=getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0),
     )
 
 
-def make_proc_spec(name: str, cmd: List[str], cwd: Path, restart_on_clean_exit: bool = False) -> Dict[str, Any]:
+def make_proc_spec(
+    name: str,
+    cmd: List[str],
+    cwd: Path,
+    restart_on_clean_exit: bool = False,
+    env: Dict[str, str] | None = None,
+) -> Dict[str, Any]:
     return {
         "name": name,
         "cmd": cmd,
         "cwd": cwd,
         "restart_on_clean_exit": restart_on_clean_exit,
+        "env": env,
         "process": None,
     }
 
 
 def launch_spec(spec: Dict[str, Any]) -> None:
-    spec["process"] = start_process(spec["cmd"], spec["cwd"], spec["name"])
+    spec["process"] = start_process(
+        spec["cmd"],
+        spec["cwd"],
+        spec["name"],
+        spec.get("env"),
+    )
 
 
 def stop_process(proc: subprocess.Popen, name: str) -> None:
@@ -129,6 +142,8 @@ def main() -> int:
     state_url = f"{server_url}/state"
 
     process_specs: List[Dict[str, Any]] = []
+    run_env = os.environ.copy()
+    run_env["TRAFFIC_USE_REAL_HARDWARE"] = "true" if args.camera else "false"
 
     try:
         if not is_port_available(args.host, args.port):
@@ -151,7 +166,13 @@ def main() -> int:
             "--port",
             str(args.port),
         ]
-        server_spec = make_proc_spec("FastAPI server", server_cmd, ROOT, restart_on_clean_exit=False)
+        server_spec = make_proc_spec(
+            "FastAPI server",
+            server_cmd,
+            ROOT,
+            restart_on_clean_exit=False,
+            env=run_env,
+        )
         launch_spec(server_spec)
         process_specs.append(server_spec)
 
@@ -177,6 +198,7 @@ def main() -> int:
             controller_cmd,
             cpp_exe.parent,
             restart_on_clean_exit=True,
+            env=run_env,
         )
         launch_spec(controller_spec)
         process_specs.append(controller_spec)
@@ -192,6 +214,7 @@ def main() -> int:
                 launcher_cmd,
                 ROOT,
                 restart_on_clean_exit=False,
+                env=run_env,
             )
             launch_spec(launcher_spec)
             process_specs.append(launcher_spec)
@@ -203,7 +226,13 @@ def main() -> int:
             else:
                 client_cmd = ["npm", "start"]
 
-            client_spec = make_proc_spec("React dashboard", client_cmd, CLIENT_DIR, restart_on_clean_exit=False)
+            client_spec = make_proc_spec(
+                "React dashboard",
+                client_cmd,
+                CLIENT_DIR,
+                restart_on_clean_exit=False,
+                env=run_env,
+            )
             launch_spec(client_spec)
             process_specs.append(client_spec)
 
@@ -212,6 +241,7 @@ def main() -> int:
         print(f"[E2E] API docs: {server_url}/docs")
         if args.with_client:
             print("[E2E] Dashboard: http://127.0.0.1:3000")
+        print(f"[E2E] Hardware mode: {'REAL' if args.camera else 'SIMULATION'}")
         print("[E2E] Press Ctrl+C to stop all processes.")
 
         while True:

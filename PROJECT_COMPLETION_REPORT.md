@@ -330,7 +330,7 @@ python --version
 node --version
 
 # C++ compiler (MSVC on Windows)
-# SQL Server or MySQL
+# SQL Server
 ```
 
 ### Installation
@@ -347,7 +347,7 @@ pip install -r python/requirements.txt
 cd client && npm install && cd ..
 
 # 4. Setup database
-mysql < database/database_schema.sql
+sqlcmd -S localhost -E -i database/database_schema_sqlserver.sql
 
 # 5. Build C++ controller
 mkdir cpp/build && cd cpp/build
