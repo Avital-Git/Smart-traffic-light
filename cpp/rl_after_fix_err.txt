@@ -1,0 +1,54 @@
+[Junction 1] conflict blocked between lanes 0 and 1
+[Junction 1] rejected invalid phase 900
+[Junction 1] conflict blocked between lanes 1 and 3
+[Junction 1] rejected invalid phase 1
+[Junction 1] conflict blocked between lanes 0 and 2
+[Junction 1] rejected invalid phase 0
+[Junction 1] conflict blocked between lanes 1 and 3
+[Junction 1] rejected invalid phase 1
+[Junction 1] conflict blocked between lanes 0 and 2
+[Junction 1] rejected invalid phase 0
+[Junction 1] conflict blocked between lanes 1 and 3
+[Junction 1] rejected invalid phase 1
+[Junction 1] conflict blocked between lanes 0 and 2
+[Junction 1] rejected invalid phase 0
+[Junction 1] conflict blocked between lanes 1 and 3
+[Junction 1] rejected invalid phase 1
+[Junction 1] conflict blocked between lanes 0 and 2
+[Junction 1] rejected invalid phase 0
+[Junction 1] conflict blocked between lanes 1 and 3
+[Junction 1] rejected invalid phase 1
+[Junction 1] conflict blocked between lanes 0 and 2
+[Junction 1] rejected invalid phase 0
+[Junction 1] conflict blocked between lanes 1 and 3
+[Junction 1] rejected invalid phase 1
+[Junction 1] conflict blocked between lanes 0 and 2
+[Junction 1] rejected invalid phase 0
+[Junction 1] conflict blocked between lanes 1 and 3
+[Junction 1] rejected invalid phase 1
+[Junction 1] conflict blocked between lanes 0 and 2
+[Junction 1] rejected invalid phase 0
+[Junction 1] conflict blocked between lanes 1 and 3
+[Junction 1] rejected invalid phase 1
+[Junction 1] conflict blocked between lanes 0 and 2
+[Junction 1] rejected invalid phase 0
+[Junction 1] conflict blocked between lanes 1 and 3
+[Junction 1] rejected invalid phase 1
+[Junction 1] conflict blocked between lanes 0 and 2
+[Junction 1] rejected invalid phase 0
+[Junction 1] conflict blocked between lanes 1 and 3
+[Junction 1] rejected invalid phase 1
+[Junction 1] conflict blocked between lanes 0 and 2
+[Junction 1] rejected invalid phase 0
+[Junction 1] conflict blocked between lanes 1 and 3
+[Junction 1] rejected invalid phase 1
+[Junction 1] conflict blocked between lanes 0 and 2
+[Junction 1] rejected invalid phase 0
+[Junction 1] conflict blocked between lanes 1 and 3
+[Junction 1] rejected invalid phase 1
+[Junction 1] conflict blocked between lanes 0 and 2
+[Junction 1] rejected invalid phase 0
+[Junction 1] conflict blocked between lanes 1 and 3
+[Junction 1] rejected invalid phase 1
+[Junction 1] conflict blocked between lanes 0 and 2
+[Junction 1] rejected invalid phase 0
