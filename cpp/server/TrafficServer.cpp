@@ -245,10 +245,25 @@ TrafficServer::~TrafficServer()
 void TrafficServer::run()
 {
     hub_->start();
-    std::cout << "[TrafficServer] HTTP  listening on http://0.0.0.0:" << port_ << "\n";
-    std::cout << "[TrafficServer] WS    listening on ws://0.0.0.0:"   << ws_port_ << "\n";
-    svr_->listen("0.0.0.0", port_);
+    if (router_mode_) {
+        std::cout << "[TrafficServer] HTTP  listening on http://" << http_bind_host_
+                  << ":" << internal_http_port_ << " (router-internal)\n";
+        std::cout << "[TrafficServer] WS    served via external Router (adopt mode)\n";
+        svr_->listen(http_bind_host_.c_str(), internal_http_port_);
+    } else {
+        std::cout << "[TrafficServer] HTTP  listening on http://0.0.0.0:" << port_ << "\n";
+        std::cout << "[TrafficServer] WS    listening on ws://0.0.0.0:"   << ws_port_ << "\n";
+        svr_->listen("0.0.0.0", port_);
+    }
     hub_->stop();
+}
+
+void TrafficServer::enable_router_mode(int internal_http_port)
+{
+    router_mode_       = true;
+    internal_http_port_ = internal_http_port;
+    http_bind_host_    = "127.0.0.1";
+    hub_->disable_own_listener();
 }
 
 void TrafficServer::stop()
@@ -281,10 +296,15 @@ void TrafficServer::register_routes()
             return httplib::Server::HandlerResponse::Handled;
         }
 
-        if (req.path.rfind("/admin/", 0) != 0) {
-            return httplib::Server::HandlerResponse::Unhandled;
-        }
-        if (req.path == "/admin/login") {
+        // Auth-gated routes: every /admin/* (except /admin/login), plus the two
+        // emergency simulate/clear endpoints (mirrors Python admin-only access).
+        const bool is_admin_path =
+            req.path.rfind("/admin/", 0) == 0 && req.path != "/admin/login";
+        const bool is_emergency_admin_path =
+            (req.path.find("/simulate-emergency") != std::string::npos) ||
+            (req.path.find("/clear-emergency")    != std::string::npos);
+
+        if (!is_admin_path && !is_emergency_admin_path) {
             return httplib::Server::HandlerResponse::Unhandled;
         }
 
@@ -351,6 +371,232 @@ void TrafficServer::register_routes()
             {"access_token", token.access_token},
             {"token_type", token.token_type},
             {"expires_in", token.expires_in},
+        }).dump(), "application/json");
+    });
+
+    auto validate_username = [](const std::string& username) -> std::optional<std::string> {
+        if (username.size() < 3) {
+            return std::string("username must be at least 3 characters");
+        }
+        for (char ch : username) {
+            if (std::isspace(static_cast<unsigned char>(ch))) {
+                return std::string("username must not contain spaces");
+            }
+        }
+        return std::nullopt;
+    };
+
+    auto validate_password = [](const std::string& password) -> std::optional<std::string> {
+        if (password.size() < 8) {
+            return std::string("password must be at least 8 characters");
+        }
+        return std::nullopt;
+    };
+
+    auto extract_current_admin_username = [](const httplib::Request& req) -> std::optional<std::string> {
+        const auto token = jwt_auth::extract_bearer_token(req.get_header_value("Authorization"));
+        if (!token) {
+            return std::nullopt;
+        }
+        std::string username;
+        if (!jwt_auth::validate_admin_token(*token, username)) {
+            return std::nullopt;
+        }
+        if (username.empty()) {
+            return std::nullopt;
+        }
+        return username;
+    };
+
+    // ── GET /admin/users ────────────────────────────────────────────────────
+    svr_->Get("/admin/users", [](const httplib::Request& /*req*/, httplib::Response& res) {
+        const auto users = db_list_admin_users();
+        json items = json::array();
+        for (const auto& user : users) {
+            items.push_back({
+                {"user_id", user.user_id},
+                {"username", user.username},
+                {"created_at", user.created_at.empty() ? json(nullptr) : json(user.created_at)},
+                {"last_login", user.last_login.empty() ? json(nullptr) : json(user.last_login)},
+            });
+        }
+
+        res.set_content(json({
+            {"status", "success"},
+            {"count", static_cast<int>(items.size())},
+            {"users", items},
+        }).dump(), "application/json");
+    });
+
+    // ── POST /admin/users ───────────────────────────────────────────────────
+    svr_->Post("/admin/users", [validate_username, validate_password](const httplib::Request& req, httplib::Response& res) {
+        json body;
+        try {
+            body = json::parse(req.body);
+        } catch (...) {
+            res.status = 400;
+            res.set_content(json({{"detail", "Invalid JSON"}}).dump(), "application/json");
+            return;
+        }
+
+        const std::string username = body.value("username", "");
+        const std::string password = body.value("password", "");
+
+        if (auto e = validate_username(username)) {
+            res.status = 422;
+            res.set_content(json({{"detail", *e}}).dump(), "application/json");
+            return;
+        }
+        if (auto e = validate_password(password)) {
+            res.status = 422;
+            res.set_content(json({{"detail", *e}}).dump(), "application/json");
+            return;
+        }
+        if (body.contains("confirm_password") && body["confirm_password"].is_string()) {
+            if (body["confirm_password"].get<std::string>() != password) {
+                res.status = 422;
+                res.set_content(json({{"detail", "password and confirm_password do not match"}}).dump(), "application/json");
+                return;
+            }
+        }
+
+        const std::string salt = jwt_auth::generate_salt_hex(16);
+        const std::string hash = jwt_auth::hash_password_with_salt(salt, password);
+
+        int new_user_id = 0;
+        bool duplicate_username = false;
+        std::string error;
+        const bool ok = db_insert_admin_user(username, hash, salt, new_user_id, duplicate_username, error);
+        if (!ok) {
+            if (duplicate_username) {
+                res.status = 409;
+                res.set_content(json({{"detail", "username already exists"}}).dump(), "application/json");
+                return;
+            }
+            res.status = 400;
+            res.set_content(json({{"detail", error.empty() ? "failed to create admin user" : error}}).dump(), "application/json");
+            return;
+        }
+
+        res.status = 201;
+        res.set_content(json({
+            {"status", "success"},
+            {"message", "Admin user created"},
+            {"user", {
+                {"user_id", new_user_id},
+                {"username", username},
+            }},
+        }).dump(), "application/json");
+    });
+
+    // ── DELETE /admin/users/{user_id} ───────────────────────────────────────
+    svr_->Delete(R"(/admin/users/(\d+))", [extract_current_admin_username](const httplib::Request& req, httplib::Response& res) {
+        const int user_id = std::stoi(req.matches[1]);
+        const auto current_username = extract_current_admin_username(req);
+        if (!current_username) {
+            res.status = 401;
+            res.set_content(json({{"detail", "Invalid token"}}).dump(), "application/json");
+            return;
+        }
+
+        std::string target_username;
+        bool target_found = false;
+        std::string error;
+        if (!db_get_admin_username_by_id(user_id, target_username, target_found, error)) {
+            res.status = 400;
+            res.set_content(json({{"detail", error.empty() ? "Failed to resolve user" : error}}).dump(), "application/json");
+            return;
+        }
+        if (!target_found) {
+            res.status = 404;
+            res.set_content(json({{"detail", "Admin user not found"}}).dump(), "application/json");
+            return;
+        }
+
+        if (target_username == *current_username) {
+            res.status = 400;
+            res.set_content(json({{"detail", "Cannot delete yourself"}}).dump(), "application/json");
+            return;
+        }
+
+        int admin_count = 0;
+        if (!db_count_admin_users(admin_count, error)) {
+            res.status = 400;
+            res.set_content(json({{"detail", error.empty() ? "Failed to count admin users" : error}}).dump(), "application/json");
+            return;
+        }
+        if (admin_count <= 1) {
+            res.status = 400;
+            res.set_content(json({{"detail", "Cannot delete the last admin user"}}).dump(), "application/json");
+            return;
+        }
+
+        bool found = false;
+        if (!db_delete_admin_user(user_id, found, error)) {
+            res.status = 400;
+            res.set_content(json({{"detail", error.empty() ? "Failed to delete admin user" : error}}).dump(), "application/json");
+            return;
+        }
+        if (!found) {
+            res.status = 404;
+            res.set_content(json({{"detail", "Admin user not found"}}).dump(), "application/json");
+            return;
+        }
+
+        res.set_content(json({
+            {"status", "success"},
+            {"message", "Admin user deleted"},
+            {"deleted_user_id", user_id},
+        }).dump(), "application/json");
+    });
+
+    // ── PUT /admin/users/{user_id}/password ─────────────────────────────────
+    svr_->Put(R"(/admin/users/(\d+)/password)", [validate_password](const httplib::Request& req, httplib::Response& res) {
+        const int user_id = std::stoi(req.matches[1]);
+
+        json body;
+        try {
+            body = json::parse(req.body);
+        } catch (...) {
+            res.status = 400;
+            res.set_content(json({{"detail", "Invalid JSON"}}).dump(), "application/json");
+            return;
+        }
+
+        const std::string password = body.value("password", "");
+        if (auto e = validate_password(password)) {
+            res.status = 422;
+            res.set_content(json({{"detail", *e}}).dump(), "application/json");
+            return;
+        }
+        if (body.contains("confirm_password") && body["confirm_password"].is_string()) {
+            if (body["confirm_password"].get<std::string>() != password) {
+                res.status = 422;
+                res.set_content(json({{"detail", "password and confirm_password do not match"}}).dump(), "application/json");
+                return;
+            }
+        }
+
+        const std::string salt = jwt_auth::generate_salt_hex(16);
+        const std::string hash = jwt_auth::hash_password_with_salt(salt, password);
+
+        bool found = false;
+        std::string error;
+        if (!db_update_admin_user_password(user_id, hash, salt, found, error)) {
+            res.status = 400;
+            res.set_content(json({{"detail", error.empty() ? "Failed to update password" : error}}).dump(), "application/json");
+            return;
+        }
+        if (!found) {
+            res.status = 404;
+            res.set_content(json({{"detail", "Admin user not found"}}).dump(), "application/json");
+            return;
+        }
+
+        res.set_content(json({
+            {"status", "success"},
+            {"message", "Password updated"},
+            {"user_id", user_id},
         }).dump(), "application/json");
     });
 
@@ -530,33 +776,47 @@ void TrafficServer::register_routes()
             if (!schema.empty()) {
                 const int db_lane_count = static_cast<int>(schema.size());
 
-                // Build lookup of incoming lanes by lane_id for fast access.
-                std::unordered_map<int, json> live_by_id;
+                // Build lookup keyed by Python's 0-based lane_id, which
+                // equals camera_index (the positional slot in the schema).
+                // Using camera_index avoids the DB PK mismatch where
+                // Python sends 0,1,2,3 but row.lane_id is an auto-increment
+                // PK (e.g. 5,6,7 for intersection 2).
+                std::unordered_map<int, json> live_by_camera;
                 if (body.contains("lanes") && body["lanes"].is_array()) {
                     for (const auto& lane : body["lanes"]) {
                         if (lane.contains("lane_id") && lane["lane_id"].is_number_integer()) {
-                            live_by_id[lane["lane_id"].get<int>()] = lane;
+                            live_by_camera[lane["lane_id"].get<int>()] = lane;
                         }
                     }
                 }
 
-                // Rebuild lanes array exactly from DB schema order/count.
+                // Rebuild lanes array from DB schema order.
+                // schema is sorted by camera_index, so schema[i].camera_index == i.
+                // Python lane_id == camera_index, so look up by i.
+                // Lane IDs in output are always 0-based so React can index
+                // directly into the lane_directions array from /layout.
                 json normalized_lanes = json::array();
-                for (const auto& row : schema) {
-                    auto it = live_by_id.find(row.lane_id);
-                    if (it != live_by_id.end()) {
-                        // Use live values but ensure lane_id and direction are canonical.
+                for (int i = 0; i < static_cast<int>(schema.size()); ++i) {
+                    const auto& row = schema[i];
+                    // Primary key: camera_index position (== Python lane_id).
+                    // Fallback: try row.camera_index explicitly, then DB PK.
+                    auto it = live_by_camera.find(i);
+                    if (it == live_by_camera.end())
+                        it = live_by_camera.find(row.camera_index);
+                    if (it == live_by_camera.end())
+                        it = live_by_camera.find(row.lane_id);
+
+                    if (it != live_by_camera.end()) {
+                        // Use live metric values; always stamp canonical
+                        // lane_id and direction from DB schema.
                         json lane = it->second;
-                        lane["lane_id"] = row.lane_id;
-                        if (lane["direction"].is_null() || !lane["direction"].is_string() ||
-                                lane["direction"].get<std::string>().empty()) {
-                            lane["direction"] = row.direction;
-                        }
+                        lane["lane_id"]  = i;              // 0-based output
+                        lane["direction"] = row.direction; // canonical DB direction
                         normalized_lanes.push_back(std::move(lane));
                     } else {
-                        // Lane missing from live data — pad with zeros.
+                        // Lane absent from live data — pad with zeros.
                         json zero_lane = {
-                            {"lane_id",          row.lane_id},
+                            {"lane_id",          i},
                             {"direction",        row.direction},
                             {"vehicle_count",    0},
                             {"queue_length",     0},
@@ -574,43 +834,100 @@ void TrafficServer::register_routes()
         }
         // ─────────────────────────────────────────────────────────────────────
 
-        // Retrieve the last RL action (written by smart_traffic_controller).
-        // Do NOT overwrite it — the RL controller owns action_store_.
-        json action;
-        {
-            std::lock_guard<std::mutex> lk(store_mutex_);
-            state_store_[id] = body.dump();
-
-            auto ai = action_store_.find(id);
-            if (ai != action_store_.end()) {
-                try {
-                    action = json::parse(ai->second);
-                } catch (...) {
-                    action = nullptr;
-                }
+        // Latch emergency signal if active + fresh (mirrors Python).
+        if (body.contains("emergency_signal") && body["emergency_signal"].is_object()) {
+            const auto& sig = body["emergency_signal"];
+            if (sig.value("active", false)) {
+                latch_emergency(id, sig);
             }
         }
 
-        // Fall back to Phase0 only when no RL action is available yet.
-        if (action.is_null() || !action.contains("action")) {
-            action = {
-                {"action",          "Phase0"},
-                {"reason",          "server_fallback_no_rl"},
-                {"intersection_id", id},
-                {"phase_id",        0},
-            };
+        // Store the (lane-normalised) state.
+        {
+            std::lock_guard<std::mutex> lk(store_mutex_);
+            state_store_[id] = body.dump();
         }
 
-        // Broadcast state_updated (mirrors Python LIVE_UPDATES.broadcast)
-        double ts = std::chrono::duration<double>(
+        // Determine the action to return, mirroring the Python decision flow:
+        //   1) If emergency is currently latched → emergency_preempt overrides.
+        //   2) Otherwise if a controller / manual action is "sticky", keep it.
+        //   3) Otherwise compute a server-side greedy-with-aging fallback.
+        constexpr double CPP_ACTION_STICKY_SEC    = 5.0;
+        constexpr double MANUAL_ACTION_STICKY_SEC = 20.0;
+
+        const double now_s = std::chrono::duration<double>(
             std::chrono::system_clock::now().time_since_epoch()).count();
-        json evt = {
-            {"event",           "state_updated"},
-            {"intersection_id", id},
-            {"timestamp",       ts},
-            {"payload",         {{"state", body}, {"action", action}}},
-        };
-        hub_->broadcast_intersection(id, evt.dump());
+
+        json action;
+        std::string chosen_source = "server_fallback";
+
+        json active_emergency = active_emergency_signal(id);
+        if (!active_emergency.is_null()) {
+            const int em_lane = active_emergency.value("lane_id", 0);
+            const int phase_id = (em_lane % 2 == 0) ? 0 : 1;
+            std::cout << "[GreedyAging] Intersection " << id
+                      << " EMERGENCY OVERRIDE: lane=" << em_lane
+                      << " vehicle_id=" << active_emergency.value("vehicle_id", std::string("?"))
+                      << " => Phase" << phase_id << "\n";
+            action = {
+                {"action",         std::string("Phase") + std::to_string(phase_id)},
+                {"reason",         "emergency_preempt"},
+                {"intersection_id", id},
+                {"phase_id",       phase_id},
+            };
+            chosen_source = "emergency_preempt";
+        } else {
+            std::string prev_source;
+            double      prev_updated_at = 0.0;
+            json        prev_action;
+            {
+                std::lock_guard<std::mutex> lk(store_mutex_);
+                auto src_it = action_source_store_.find(id);
+                auto upd_it = action_updated_at_store_.find(id);
+                auto act_it = action_store_.find(id);
+                if (src_it != action_source_store_.end()) prev_source = src_it->second;
+                if (upd_it != action_updated_at_store_.end()) prev_updated_at = upd_it->second;
+                if (act_it != action_store_.end()) {
+                    try { prev_action = json::parse(act_it->second); } catch (...) {}
+                }
+            }
+
+            const double age = now_s - prev_updated_at;
+            const bool cpp_sticky    = (prev_source == "cpp_controller"
+                                        && prev_action.is_object()
+                                        && age <= CPP_ACTION_STICKY_SEC);
+            const bool manual_sticky = (prev_source == "manual_dashboard"
+                                        && prev_action.is_object()
+                                        && age <= MANUAL_ACTION_STICKY_SEC);
+
+            if (cpp_sticky || manual_sticky) {
+                std::cout << "[GreedyAging] Intersection " << id
+                          << " STICKY action retained (source=" << prev_source
+                          << " age=" << std::fixed << std::setprecision(1) << age << "s)"
+                          << " action=" << (prev_action.contains("action") ? prev_action["action"].get<std::string>() : "?")
+                          << "\n";
+                action = prev_action;
+                chosen_source = prev_source;
+            } else {
+                action = decide_action_fallback(id, body);
+                chosen_source = "server_fallback";
+            }
+        }
+
+        // Persist the chosen action with source / timestamp.
+        {
+            std::lock_guard<std::mutex> lk(store_mutex_);
+            action_store_[id]            = action.dump();
+            action_source_store_[id]     = chosen_source;
+            action_updated_at_store_[id] = now_s;
+        }
+
+        // Broadcast state_updated (per-intersection AND global subscribers).
+        broadcast_event(id, "state_updated", json({
+            {"state",  body},
+            {"action", action},
+            {"source", chosen_source},
+        }));
 
         res.set_content(action.dump(), "application/json");
     });
@@ -721,6 +1038,17 @@ void TrafficServer::register_routes()
         std::string action_str = body["action"].get<std::string>();
         std::string reason     = body.value("reason", "selected_by_cpp_controller");
 
+        // Classify source from the reason hint, mirroring Python:
+        //   reasons containing "manual"/"dashboard" → manual_dashboard (20s sticky)
+        //   everything else                         → cpp_controller   (5s sticky)
+        std::string source = "cpp_controller";
+        std::string lower_reason = reason;
+        for (auto& ch : lower_reason) ch = (char)std::tolower((unsigned char)ch);
+        if (lower_reason.find("manual") != std::string::npos ||
+            lower_reason.find("dashboard") != std::string::npos) {
+            source = "manual_dashboard";
+        }
+
         json action = {
             {"action",         action_str},
             {"reason",         reason},
@@ -728,21 +1056,19 @@ void TrafficServer::register_routes()
             {"phase_id",       phase_id},
         };
 
+        const double now_s = std::chrono::duration<double>(
+            std::chrono::system_clock::now().time_since_epoch()).count();
         {
             std::lock_guard<std::mutex> lk(store_mutex_);
-            action_store_[id] = action.dump();
+            action_store_[id]            = action.dump();
+            action_source_store_[id]     = source;
+            action_updated_at_store_[id] = now_s;
         }
 
-        // Broadcast action_updated (mirrors Python LIVE_UPDATES.broadcast)
-        double ts2 = std::chrono::duration<double>(
-            std::chrono::system_clock::now().time_since_epoch()).count();
-        json evt = {
-            {"event",           "action_updated"},
-            {"intersection_id", id},
-            {"timestamp",       ts2},
-            {"payload",         {{"action", action}, {"source", reason}}},
-        };
-        hub_->broadcast_intersection(id, evt.dump());
+        broadcast_event(id, "action_updated", json({
+            {"action", action},
+            {"source", source},
+        }));
 
         res.set_content(action.dump(), "application/json");
     });
@@ -806,6 +1132,753 @@ void TrafficServer::register_routes()
         };
         res.set_content(response.dump(), "application/json");
     });
+
+    // ── GET / ───────────────────────────────────────────────────────────────
+    svr_->Get("/", [this](const httplib::Request& /*req*/, httplib::Response& res) {
+        res.set_content(json({
+            {"status",  "running"},
+            {"message", "Smart Traffic Server (C++) — hybrid backend"},
+            {"docs",    "/health"},
+            {"health",  "/health"},
+            {"intersections", "/intersections"},
+            {"security", {
+                {"jwt",         "enabled"},
+                {"cors_origin", "*"},
+            }},
+            {"configuration", {
+                {"port",            port_},
+                {"router_mode",     router_mode_},
+                {"internal_port",   internal_http_port_},
+            }},
+            {"emergency_auth", {
+                {"vehicle_key_count", static_cast<int>(emergency_keys_.size())},
+                {"max_clock_skew_sec", emergency_max_clock_skew_sec_},
+            }},
+            {"hardware", json::object()},
+        }).dump(), "application/json");
+    });
+
+    // ── GET /config ─────────────────────────────────────────────────────────
+    svr_->Get("/config", [](const httplib::Request& /*req*/, httplib::Response& res) {
+        res.set_content(json({
+            {"status",        "ok"},
+            {"configuration", json::object()},
+            {"thresholds",    json::object()},
+            {"network",       json::object()},
+            {"emergency",     json::object()},
+            {"rl_agent",      json::object()},
+            {"hardware",      {{"real_mode", false}, {"manual_emergency_enabled", true}}},
+        }).dump(), "application/json");
+    });
+
+    // ── GET /metrics/summary ────────────────────────────────────────────────
+    svr_->Get("/metrics/summary", [this](const httplib::Request& /*req*/, httplib::Response& res) {
+        const double ts = std::chrono::duration<double>(
+            std::chrono::system_clock::now().time_since_epoch()).count();
+
+        json by_intersection = json::array();
+        int  total_queue     = 0;
+        double waiting_sum   = 0.0;
+        int    lane_total    = 0;
+
+        std::lock_guard<std::mutex> lk(store_mutex_);
+        for (const auto& kv : state_store_) {
+            int id = kv.first;
+            json state;
+            try { state = json::parse(kv.second); } catch (...) { continue; }
+
+            int  queue   = 0;
+            double wait  = 0.0;
+            int  lanes_n = 0;
+            if (state.contains("lanes") && state["lanes"].is_array()) {
+                for (const auto& l : state["lanes"]) {
+                    if (l.contains("vehicle_count") && l["vehicle_count"].is_number()) {
+                        queue += std::max(0, (int)l["vehicle_count"].get<double>());
+                    }
+                    if (l.contains("waiting_time_sec") && l["waiting_time_sec"].is_number()) {
+                        wait += std::max(0.0, l["waiting_time_sec"].get<double>());
+                    }
+                    ++lanes_n;
+                }
+            }
+            const double avg_wait = lanes_n > 0 ? wait / lanes_n : 0.0;
+            total_queue += queue;
+            waiting_sum += avg_wait;
+            ++lane_total;
+
+            by_intersection.push_back({
+                {"intersection_id", id},
+                {"total_queue",     queue},
+                {"avg_waiting_sec", avg_wait},
+            });
+        }
+
+        res.set_content(json({
+            {"timestamp",                ts},
+            {"intersection_count",       static_cast<int>(state_store_.size())},
+            {"total_network_queue",      total_queue},
+            {"avg_network_waiting_sec",  lane_total > 0 ? waiting_sum / lane_total : 0.0},
+            {"intersections",            by_intersection},
+            {"security",                 {{"jwt", "enabled"}}},
+        }).dump(), "application/json");
+    });
+
+    // ── GET /intersection/{id} ──────────────────────────────────────────────
+    svr_->Get(R"(/intersection/(\d+))",
+        [this](const httplib::Request& req, httplib::Response& res) {
+        int id = std::stoi(req.matches[1]);
+
+        // Try the live state first.
+        std::string state_str;
+        bool found = false;
+        {
+            std::lock_guard<std::mutex> lk(store_mutex_);
+            auto it = state_store_.find(id);
+            if (it != state_store_.end()) {
+                state_str = it->second;
+                found = true;
+            }
+        }
+
+        if (!found) {
+            // No state posted yet — synthesize a zero-state from the DB lane
+            // schema so the React grid renders immediately (all zeros, no loading).
+            const auto& schema = get_cached_lane_schema(id);
+            if (schema.empty()) {
+                res.status = 404;
+                res.set_content(json({{"detail", "Intersection state not found"}}).dump(),
+                                "application/json");
+                return;
+            }
+            const double now_ts = std::chrono::duration<double>(
+                std::chrono::system_clock::now().time_since_epoch()).count();
+            json zero_state = {
+                {"intersection_id",  id},
+                {"timestamp",        now_ts},
+                {"num_lanes",        static_cast<int>(schema.size())},
+                {"total_vehicles",   0},
+                {"emergency_signal", nullptr},
+            };
+            json lanes = json::array();
+            for (int i = 0; i < static_cast<int>(schema.size()); ++i) {
+                lanes.push_back({
+                    {"lane_id",          i},
+                    {"direction",        schema[i].direction},
+                    {"vehicle_count",    0},
+                    {"queue_length",     0},
+                    {"density_pct",      0.0},
+                    {"waiting_time_sec", 0.0},
+                    {"pedestrian_count", 0},
+                });
+            }
+            zero_state["lanes"] = std::move(lanes);
+            state_str = zero_state.dump();
+        }
+
+        res.set_content(state_str, "application/json");
+    });
+
+    // ── GET /intersection/{id}/layout ───────────────────────────────────────
+    svr_->Get(R"(/intersection/(\d+)/layout)",
+        [this](const httplib::Request& req, httplib::Response& res) {
+        int id = std::stoi(req.matches[1]);
+        const auto& schema = get_cached_lane_schema(id);
+
+        json directions = json::array();
+        for (const auto& row : schema) directions.push_back(row.direction);
+
+        json neighbors = json::array();
+        // Prefer the full topology (includes direction_from) for the React layout contract.
+        auto it_full = neighbor_topology_full_.find(id);
+        if (it_full != neighbor_topology_full_.end()) {
+            for (const auto& n : it_full->second) {
+                json obj = {
+                    {"adjacent_intersection_id", n.adjacent_intersection_id},
+                    {"direction_from", n.direction_from.empty()
+                        ? json(nullptr) : json(n.direction_from)},
+                };
+                if (n.distance_m > 0) obj["distance_m"] = n.distance_m;
+                neighbors.push_back(std::move(obj));
+            }
+        } else {
+            // Fallback: plain IDs without direction info.
+            auto it = neighbor_topology_.find(id);
+            if (it != neighbor_topology_.end()) {
+                for (int nid : it->second) {
+                    neighbors.push_back({
+                        {"adjacent_intersection_id", nid},
+                        {"direction_from", nullptr},
+                    });
+                }
+            }
+        }
+
+        res.set_content(json({
+            {"intersection_id", id},
+            {"num_lanes",       static_cast<int>(schema.size())},
+            {"lane_directions", directions},
+            {"neighbors",       neighbors},
+        }).dump(), "application/json");
+    });
+
+    // ── POST /intersection/{id}/simulate-emergency ──────────────────────────
+    svr_->Post(R"(/intersection/(\d+)/simulate-emergency)",
+        [this](const httplib::Request& req, httplib::Response& res) {
+        int id = std::stoi(req.matches[1]);
+        json body;
+        try { body = json::parse(req.body); }
+        catch (...) {
+            res.status = 400;
+            res.set_content(json({{"detail", "Invalid JSON"}}).dump(), "application/json");
+            return;
+        }
+
+        const int lane_id  = body.value("lane_id", 0);
+        const std::string vehicle_id = body.value("vehicle_id", std::string("dashboard-sim"));
+        const double now_s = std::chrono::duration<double>(
+            std::chrono::system_clock::now().time_since_epoch()).count();
+
+        json signal = {
+            {"active",     true},
+            {"lane_id",    lane_id},
+            {"vehicle_id", vehicle_id},
+            {"timestamp",  now_s},
+            {"signature",  nullptr},
+            {"simulated",  true},
+        };
+        latch_emergency(id, signal);
+
+        const int phase_id = (lane_id % 2 == 0) ? 0 : 1;
+        json action = {
+            {"action",          std::string("Phase") + std::to_string(phase_id)},
+            {"reason",          "emergency_preempt"},
+            {"intersection_id", id},
+            {"phase_id",        phase_id},
+        };
+        {
+            std::lock_guard<std::mutex> lk(store_mutex_);
+            action_store_[id]            = action.dump();
+            action_source_store_[id]     = "emergency_preempt";
+            action_updated_at_store_[id] = now_s;
+        }
+        broadcast_event(id, "action_updated", json({
+            {"action",  action},
+            {"source",  "emergency_preempt"},
+            {"signal",  signal},
+        }));
+        res.set_content(action.dump(), "application/json");
+    });
+
+    // ── POST /intersection/{id}/clear-emergency ─────────────────────────────
+    svr_->Post(R"(/intersection/(\d+)/clear-emergency)",
+        [this](const httplib::Request& req, httplib::Response& res) {
+        int id = std::stoi(req.matches[1]);
+        clear_emergency_latch(id);
+
+        // Reset action stickiness so the next POST /state recomputes a fallback.
+        const double now_s = std::chrono::duration<double>(
+            std::chrono::system_clock::now().time_since_epoch()).count();
+        json action = {
+            {"action",          "Phase0"},
+            {"reason",          "emergency_cleared"},
+            {"intersection_id", id},
+            {"phase_id",        0},
+        };
+        {
+            std::lock_guard<std::mutex> lk(store_mutex_);
+            action_store_[id]            = action.dump();
+            action_source_store_[id]     = "server_fallback";
+            action_updated_at_store_[id] = now_s;
+        }
+        broadcast_event(id, "action_updated", json({
+            {"action",  action},
+            {"source",  "emergency_cleared"},
+        }));
+        res.set_content(action.dump(), "application/json");
+    });
+
+    // ── GET /admin/auth/verify ──────────────────────────────────────────────
+    svr_->Get("/admin/auth/verify", [](const httplib::Request& req, httplib::Response& res) {
+        // pre_routing_handler already validated the token if we reach here.
+        const auto token = jwt_auth::extract_bearer_token(req.get_header_value("Authorization"));
+        std::string username;
+        if (token) jwt_auth::validate_admin_token(*token, username);
+        res.set_content(json({
+            {"status",   "ok"},
+            {"username", username},
+            {"message",  "Token is valid"},
+        }).dump(), "application/json");
+    });
+
+    // ── POST /admin/manual-control ──────────────────────────────────────────
+    svr_->Post("/admin/manual-control", [this](const httplib::Request& req, httplib::Response& res) {
+        json body;
+        try { body = json::parse(req.body); }
+        catch (...) {
+            res.status = 400;
+            res.set_content(json({{"detail", "Invalid JSON"}}).dump(), "application/json");
+            return;
+        }
+        if (!body.contains("intersection_id") || !body["intersection_id"].is_number_integer() ||
+            !body.contains("phase_id")        || !body["phase_id"].is_number_integer()) {
+            res.status = 422;
+            res.set_content(json({{"detail", "intersection_id and phase_id are required"}}).dump(),
+                            "application/json");
+            return;
+        }
+        const int id       = body["intersection_id"].get<int>();
+        const int phase_id = body["phase_id"].get<int>();
+        const std::string reason = body.value("reason", std::string("manual_dashboard"));
+
+        json action = {
+            {"action",          std::string("Phase") + std::to_string(phase_id)},
+            {"reason",          reason + " (manual)"},
+            {"intersection_id", id},
+            {"phase_id",        phase_id},
+        };
+        const double now_s = std::chrono::duration<double>(
+            std::chrono::system_clock::now().time_since_epoch()).count();
+        {
+            std::lock_guard<std::mutex> lk(store_mutex_);
+            action_store_[id]            = action.dump();
+            action_source_store_[id]     = "manual_dashboard";
+            action_updated_at_store_[id] = now_s;
+        }
+        broadcast_event(id, "action_updated", json({
+            {"action", action},
+            {"source", "manual_dashboard"},
+        }));
+        res.set_content(json({
+            {"status",  "success"},
+            {"message", "Manual control accepted"},
+            {"action",  action},
+        }).dump(), "application/json");
+    });
+
+    // ── GET /admin/intersection/{id} ────────────────────────────────────────
+    svr_->Get(R"(/admin/intersection/(\d+))",
+        [this](const httplib::Request& req, httplib::Response& res) {
+        int id = std::stoi(req.matches[1]);
+
+        json intersection_obj = nullptr;
+        for (const auto& r : db_fetch_intersections()) {
+            if (r.id == id) {
+                intersection_obj = {
+                    {"id",   r.id},
+                    {"code", r.code},
+                    {"name", r.name},
+                    {"city", r.city},
+                };
+                break;
+            }
+        }
+        if (intersection_obj.is_null()) {
+            res.status = 404;
+            res.set_content(json({{"detail", "Intersection not found"}}).dump(), "application/json");
+            return;
+        }
+
+        const auto& lanes = get_cached_lane_schema(id);
+        json lanes_arr = json::array();
+        for (const auto& l : lanes) {
+            lanes_arr.push_back({
+                {"lane_id",      l.lane_id},
+                {"camera_index", l.camera_index},
+                {"direction",    l.direction},
+                {"description",  l.description.empty() ? json(nullptr) : json(l.description)},
+            });
+        }
+
+        json neighbors_arr = json::array();
+        auto nit = neighbor_topology_.find(id);
+        if (nit != neighbor_topology_.end()) {
+            for (int n : nit->second) neighbors_arr.push_back(n);
+        }
+
+        json state_obj  = nullptr;
+        json action_obj = nullptr;
+        {
+            std::lock_guard<std::mutex> lk(store_mutex_);
+            auto si = state_store_.find(id);
+            auto ai = action_store_.find(id);
+            if (si != state_store_.end()) {
+                try { state_obj = json::parse(si->second); } catch (...) {}
+            }
+            if (ai != action_store_.end()) {
+                try { action_obj = json::parse(ai->second); } catch (...) {}
+            }
+        }
+
+        res.set_content(json({
+            {"status",         "success"},
+            {"intersection",   intersection_obj},
+            {"neighbors",      neighbors_arr},
+            {"lanes",          lanes_arr},
+            {"current_state",  state_obj},
+            {"current_action", action_obj},
+        }).dump(), "application/json");
+    });
+
+    // ── GET /admin/intersection/{id}/neighbors ──────────────────────────────
+    svr_->Get(R"(/admin/intersection/(\d+)/neighbors)",
+        [this](const httplib::Request& req, httplib::Response& res) {
+        int id = std::stoi(req.matches[1]);
+        json neighbors = json::array();
+        auto it = neighbor_topology_.find(id);
+        if (it != neighbor_topology_.end()) {
+            std::lock_guard<std::mutex> lk(store_mutex_);
+            for (int nid : it->second) {
+                json state = nullptr, action = nullptr;
+                auto si = state_store_.find(nid);
+                auto ai = action_store_.find(nid);
+                if (si != state_store_.end()) { try { state  = json::parse(si->second); } catch (...) {} }
+                if (ai != action_store_.end()) { try { action = json::parse(ai->second); } catch (...) {} }
+                neighbors.push_back({{"id", nid}, {"state", state}, {"action", action}});
+            }
+        }
+        res.set_content(json({
+            {"status",          "success"},
+            {"intersection_id", id},
+            {"neighbor_count",  static_cast<int>(neighbors.size())},
+            {"neighbors",       neighbors},
+        }).dump(), "application/json");
+    });
+
+    // ── GET /admin/intersection/{id}/phase-options ──────────────────────────
+    svr_->Get(R"(/admin/intersection/(\d+)/phase-options)",
+        [this](const httplib::Request& req, httplib::Response& res) {
+        int id = std::stoi(req.matches[1]);
+        const auto& lanes = get_cached_lane_schema(id);
+
+        // Even-lane phase (Phase0) and odd-lane phase (Phase1) — simple
+        // 2-phase model matching the legacy Python heuristic. Real phase
+        // computation lives in PhaseConfig / ConflictConfig on the controller
+        // side; the dashboard only needs labels to populate its dropdown.
+        json options = json::array();
+        json even, odd;
+        for (const auto& l : lanes) {
+            if (l.lane_id % 2 == 0) even.push_back(l.lane_id);
+            else                    odd.push_back(l.lane_id);
+        }
+        options.push_back({
+            {"phase_id", 0}, {"label", "Phase 0 (even lanes)"}, {"green_lanes", even},
+        });
+        options.push_back({
+            {"phase_id", 1}, {"label", "Phase 1 (odd lanes)"},  {"green_lanes", odd},
+        });
+        res.set_content(json({
+            {"status",          "success"},
+            {"intersection_id", id},
+            {"count",           static_cast<int>(options.size())},
+            {"phase_options",   options},
+        }).dump(), "application/json");
+    });
+
+    // ── GET /admin/intersection/{id}/lanes ──────────────────────────────────
+    svr_->Get(R"(/admin/intersection/(\d+)/lanes)",
+        [this](const httplib::Request& req, httplib::Response& res) {
+        int id = std::stoi(req.matches[1]);
+        const auto& lanes = get_cached_lane_schema(id);
+        json arr = json::array();
+        for (const auto& l : lanes) {
+            arr.push_back({
+                {"lane_id",      l.lane_id},
+                {"camera_index", l.camera_index},
+                {"direction",    l.direction},
+                {"description",  l.description.empty() ? json(nullptr) : json(l.description)},
+            });
+        }
+        res.set_content(json({
+            {"status",          "success"},
+            {"intersection_id", id},
+            {"count",           static_cast<int>(arr.size())},
+            {"lanes",           arr},
+        }).dump(), "application/json");
+    });
+
+    // ── GET /admin/intersection/{id}/conflicts ──────────────────────────────
+    svr_->Get(R"(/admin/intersection/(\d+)/conflicts)",
+        [](const httplib::Request& req, httplib::Response& res) {
+        int id = std::stoi(req.matches[1]);
+        auto rows = db_fetch_conflicts(id);
+        json arr = json::array();
+        for (const auto& r : rows) {
+            arr.push_back({
+                {"conflict_id",   r.conflict_id},
+                {"lane_id_1",     r.lane_id_1},
+                {"lane_id_2",     r.lane_id_2},
+                {"conflict_type", r.conflict_type},
+                {"created_at",    r.created_at.empty() ? json(nullptr) : json(r.created_at)},
+            });
+        }
+        res.set_content(json({
+            {"status",          "success"},
+            {"intersection_id", id},
+            {"count",           static_cast<int>(arr.size())},
+            {"conflicts",       arr},
+        }).dump(), "application/json");
+    });
+
+    // ── helper lambdas reused by lane/conflict write routes ────────────────
+    auto build_lane_array = [](int id) {
+        auto rows = db_fetch_lanes(id);
+        json arr = json::array();
+        for (const auto& l : rows) {
+            arr.push_back({
+                {"lane_id",      l.lane_id},
+                {"camera_index", l.camera_index},
+                {"direction",    l.direction},
+                {"description",  l.description.empty() ? json(nullptr) : json(l.description)},
+            });
+        }
+        return arr;
+    };
+    auto build_conflict_array = [](int id) {
+        auto rows = db_fetch_conflicts(id);
+        json arr = json::array();
+        for (const auto& r : rows) {
+            arr.push_back({
+                {"conflict_id",   r.conflict_id},
+                {"intersection_id", id},
+                {"lane_id_1",     r.lane_id_1},
+                {"lane_id_2",     r.lane_id_2},
+                {"conflict_type", r.conflict_type},
+                {"created_at",    r.created_at.empty() ? json(nullptr) : json(r.created_at)},
+            });
+        }
+        return arr;
+    };
+    auto normalize_direction = [](std::string s) -> std::string {
+        // Trim + uppercase first letter; accept "N"/"S"/"E"/"W" or names.
+        while (!s.empty() && std::isspace(static_cast<unsigned char>(s.front()))) s.erase(s.begin());
+        while (!s.empty() && std::isspace(static_cast<unsigned char>(s.back())))  s.pop_back();
+        for (auto& c : s) c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+        if (s == "NORTH") s = "N";
+        else if (s == "SOUTH") s = "S";
+        else if (s == "EAST")  s = "E";
+        else if (s == "WEST")  s = "W";
+        return s;
+    };
+
+    // ── POST /admin/intersection/{id}/lanes ────────────────────────────────
+    svr_->Post(R"(/admin/intersection/(\d+)/lanes)",
+        [this, build_lane_array, normalize_direction]
+        (const httplib::Request& req, httplib::Response& res) {
+        int id = std::stoi(req.matches[1]);
+        if (!db_intersection_exists(id)) {
+            res.status = 404;
+            res.set_content(json({{"detail", "Intersection not found"}}).dump(), "application/json");
+            return;
+        }
+        json body;
+        try { body = json::parse(req.body); }
+        catch (...) {
+            res.status = 400;
+            res.set_content(json({{"detail", "Invalid JSON"}}).dump(), "application/json");
+            return;
+        }
+        if (!body.contains("camera_index") || !body["camera_index"].is_number_integer() ||
+            !body.contains("direction")    || !body["direction"].is_string()) {
+            res.status = 422;
+            res.set_content(json({{"detail", "camera_index (int) and direction (string) are required"}}).dump(),
+                            "application/json");
+            return;
+        }
+        const int cam   = body["camera_index"].get<int>();
+        const std::string dir = normalize_direction(body["direction"].get<std::string>());
+        std::optional<std::string> desc;
+        if (body.contains("description") && body["description"].is_string()) {
+            desc = body["description"].get<std::string>();
+        }
+
+        std::string err;
+        if (!db_insert_lane(id, cam, dir, desc, err)) {
+            res.status = 400;
+            res.set_content(json({{"detail", std::string("Failed creating lane: ") + err}}).dump(),
+                            "application/json");
+            return;
+        }
+        invalidate_lane_cache(id);
+        res.set_content(json({
+            {"status",  "success"},
+            {"message", "Lane created successfully"},
+            {"lanes",   build_lane_array(id)},
+        }).dump(), "application/json");
+    });
+
+    // ── PUT /admin/intersection/{id}/lanes/{lane_id} ───────────────────────
+    svr_->Put(R"(/admin/intersection/(\d+)/lanes/(\d+))",
+        [this, build_lane_array, normalize_direction]
+        (const httplib::Request& req, httplib::Response& res) {
+        int id      = std::stoi(req.matches[1]);
+        int lane_id = std::stoi(req.matches[2]);
+
+        json body;
+        try { body = json::parse(req.body); }
+        catch (...) {
+            res.status = 400;
+            res.set_content(json({{"detail", "Invalid JSON"}}).dump(), "application/json");
+            return;
+        }
+
+        std::optional<std::string> dir;
+        std::optional<std::string> desc;
+        if (body.contains("direction") && body["direction"].is_string()) {
+            dir = normalize_direction(body["direction"].get<std::string>());
+        }
+        if (body.contains("description") && body["description"].is_string()) {
+            desc = body["description"].get<std::string>();
+        }
+        if (!dir && !desc) {
+            res.status = 400;
+            res.set_content(json({{"detail", "No fields to update"}}).dump(), "application/json");
+            return;
+        }
+
+        bool found = false;
+        std::string err;
+        if (!db_update_lane(id, lane_id, dir, desc, found, err)) {
+            res.status = 400;
+            res.set_content(json({{"detail", std::string("Failed updating lane: ") + err}}).dump(),
+                            "application/json");
+            return;
+        }
+        if (!found) {
+            res.status = 404;
+            res.set_content(json({{"detail", "Lane not found"}}).dump(), "application/json");
+            return;
+        }
+        invalidate_lane_cache(id);
+        res.set_content(json({
+            {"status",  "success"},
+            {"message", "Lane updated successfully"},
+            {"lanes",   build_lane_array(id)},
+        }).dump(), "application/json");
+    });
+
+    // ── DELETE /admin/intersection/{id}/lanes/{lane_id} ────────────────────
+    svr_->Delete(R"(/admin/intersection/(\d+)/lanes/(\d+))",
+        [this, build_lane_array](const httplib::Request& req, httplib::Response& res) {
+        int id      = std::stoi(req.matches[1]);
+        int lane_id = std::stoi(req.matches[2]);
+
+        bool found = false;
+        std::string err;
+        if (!db_delete_lane(id, lane_id, found, err)) {
+            res.status = 400;
+            res.set_content(json({{"detail", std::string("Failed deleting lane: ") + err}}).dump(),
+                            "application/json");
+            return;
+        }
+        if (!found) {
+            res.status = 404;
+            res.set_content(json({{"detail", "Lane not found"}}).dump(), "application/json");
+            return;
+        }
+        invalidate_lane_cache(id);
+        res.set_content(json({
+            {"status",  "success"},
+            {"message", "Lane deleted successfully"},
+            {"lanes",   build_lane_array(id)},
+        }).dump(), "application/json");
+    });
+
+    // ── POST /admin/intersection/{id}/conflicts ────────────────────────────
+    svr_->Post(R"(/admin/intersection/(\d+)/conflicts)",
+        [build_conflict_array](const httplib::Request& req, httplib::Response& res) {
+        int id = std::stoi(req.matches[1]);
+        if (!db_intersection_exists(id)) {
+            res.status = 404;
+            res.set_content(json({{"detail", "Intersection not found"}}).dump(), "application/json");
+            return;
+        }
+        json body;
+        try { body = json::parse(req.body); }
+        catch (...) {
+            res.status = 400;
+            res.set_content(json({{"detail", "Invalid JSON"}}).dump(), "application/json");
+            return;
+        }
+        if (!body.contains("lane_id_1") || !body["lane_id_1"].is_number_integer() ||
+            !body.contains("lane_id_2") || !body["lane_id_2"].is_number_integer()) {
+            res.status = 422;
+            res.set_content(json({{"detail", "lane_id_1 and lane_id_2 are required"}}).dump(),
+                            "application/json");
+            return;
+        }
+        const int a = body["lane_id_1"].get<int>();
+        const int b = body["lane_id_2"].get<int>();
+        if (a == b) {
+            res.status = 400;
+            res.set_content(json({{"detail", "lane_id_1 and lane_id_2 must differ"}}).dump(),
+                            "application/json");
+            return;
+        }
+        const int l1 = std::min(a, b);
+        const int l2 = std::max(a, b);
+        const std::string ctype = (body.contains("conflict_type") && body["conflict_type"].is_string())
+            ? body["conflict_type"].get<std::string>() : std::string("crossing");
+
+        bool missing = false, dup = false;
+        std::string err;
+        if (!db_insert_conflict(id, l1, l2, ctype, missing, dup, err)) {
+            if (missing) {
+                res.status = 404;
+                res.set_content(json({{"detail", "Lane not found in intersection"}}).dump(),
+                                "application/json");
+            } else if (dup) {
+                res.status = 400;
+                res.set_content(json({{"detail", "This conflict pair already exists"}}).dump(),
+                                "application/json");
+            } else {
+                res.status = 400;
+                res.set_content(json({{"detail", std::string("Failed creating conflict: ") + err}}).dump(),
+                                "application/json");
+            }
+            return;
+        }
+        json arr = build_conflict_array(id);
+        res.set_content(json({
+            {"status",          "success"},
+            {"message",         "Lane conflict created successfully"},
+            {"intersection_id", id},
+            {"count",           static_cast<int>(arr.size())},
+            {"conflicts",       arr},
+        }).dump(), "application/json");
+    });
+
+    // ── DELETE /admin/intersection/{id}/conflicts/{conflict_id} ────────────
+    svr_->Delete(R"(/admin/intersection/(\d+)/conflicts/(\d+))",
+        [build_conflict_array](const httplib::Request& req, httplib::Response& res) {
+        int id  = std::stoi(req.matches[1]);
+        int cid = std::stoi(req.matches[2]);
+        if (!db_intersection_exists(id)) {
+            res.status = 404;
+            res.set_content(json({{"detail", "Intersection not found"}}).dump(), "application/json");
+            return;
+        }
+        bool found = false;
+        std::string err;
+        if (!db_delete_conflict(id, cid, found, err)) {
+            res.status = 400;
+            res.set_content(json({{"detail", std::string("Failed deleting conflict: ") + err}}).dump(),
+                            "application/json");
+            return;
+        }
+        if (!found) {
+            res.status = 404;
+            res.set_content(json({{"detail", "Conflict not found"}}).dump(), "application/json");
+            return;
+        }
+        json arr = build_conflict_array(id);
+        res.set_content(json({
+            {"status",          "success"},
+            {"message",         "Lane conflict deleted successfully"},
+            {"intersection_id", id},
+            {"count",           static_cast<int>(arr.size())},
+            {"conflicts",       arr},
+        }).dump(), "application/json");
+    });
 }
 
 // ── get_cached_lane_schema ────────────────────────────────────────────────────
@@ -831,11 +1904,20 @@ const std::vector<LaneRow>& TrafficServer::get_cached_lane_schema(int intersecti
     return lane_schema_cache_[intersection_id];
 }
 
+void TrafficServer::invalidate_lane_cache(int intersection_id)
+{
+    std::lock_guard<std::mutex> lk(lane_cache_mutex_);
+    lane_schema_cache_.erase(intersection_id);
+    lane_cache_loaded_.erase(intersection_id);
+}
+
 void TrafficServer::load_neighbor_topology()
 {
-    auto db_topology = db_fetch_neighbor_topology();
+    auto db_topology      = db_fetch_neighbor_topology();
+    auto db_topology_full = db_fetch_neighbor_full_topology();
     if (!db_topology.empty()) {
-        neighbor_topology_ = std::move(db_topology);
+        neighbor_topology_      = std::move(db_topology);
+        neighbor_topology_full_ = std::move(db_topology_full);
         std::cout << "[TrafficServer] Loaded neighbor topology from DB ("
                   << neighbor_topology_.size() << " intersections)\n";
         return;
@@ -1111,3 +2193,118 @@ json TrafficServer::build_neighbor_summaries(int intersection_id)
 
     return summaries;
 }
+
+// (helpers appended below)
+
+// ── broadcast_event ──────────────────────────────────────────────────────────
+// Wraps a payload in the canonical envelope and ships it to BOTH
+// /ws/intersection/{id} subscribers and /ws/updates global subscribers.
+void TrafficServer::broadcast_event(int intersection_id,
+                                    const std::string& event_name,
+                                    const nlohmann::json& payload)
+{
+    const double ts = std::chrono::duration<double>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+    const nlohmann::json envelope = {
+        {"event",           event_name},
+        {"intersection_id", intersection_id},
+        {"timestamp",       ts},
+        {"payload",         payload},
+    };
+    if (hub_) hub_->broadcast_intersection(intersection_id, envelope.dump());
+}
+
+// ── latch_emergency / clear_emergency_latch / active_emergency_signal ────────
+void TrafficServer::latch_emergency(int intersection_id, const nlohmann::json& signal)
+{
+    constexpr double EMERGENCY_LATCH_SEC = 8.0;
+    const double now_s = std::chrono::duration<double>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+    std::lock_guard<std::mutex> lk(emergency_latch_mutex_);
+    emergency_latch_[intersection_id]        = signal.dump();
+    emergency_latch_expiry_[intersection_id] = now_s + EMERGENCY_LATCH_SEC;
+}
+
+void TrafficServer::clear_emergency_latch(int intersection_id)
+{
+    std::lock_guard<std::mutex> lk(emergency_latch_mutex_);
+    emergency_latch_.erase(intersection_id);
+    emergency_latch_expiry_.erase(intersection_id);
+}
+
+nlohmann::json TrafficServer::active_emergency_signal(int intersection_id)
+{
+    const double now_s = std::chrono::duration<double>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+    std::lock_guard<std::mutex> lk(emergency_latch_mutex_);
+    auto exp_it = emergency_latch_expiry_.find(intersection_id);
+    if (exp_it == emergency_latch_expiry_.end() || exp_it->second < now_s) {
+        emergency_latch_.erase(intersection_id);
+        emergency_latch_expiry_.erase(intersection_id);
+        return nullptr;
+    }
+    auto sig_it = emergency_latch_.find(intersection_id);
+    if (sig_it == emergency_latch_.end()) return nullptr;
+    try { return nlohmann::json::parse(sig_it->second); }
+    catch (...) { return nullptr; }
+}
+
+// ── decide_action_fallback ───────────────────────────────────────────────────
+// Server-side greedy-with-aging fallback used when no controller / manual /
+// emergency action is in force. Scores each lane by
+//     vehicle_count * 1.5 + density_pct * 0.5 + waiting_time_sec * 0.2
+// then maps the winner's lane index to phase 0 (even) or phase 1 (odd).
+// Matches Python decide_action() so the React UI sees the same labels.
+nlohmann::json TrafficServer::decide_action_fallback(int intersection_id,
+                                                    const nlohmann::json& state_body)
+{
+    int    best_lane  = 0;
+    double best_score = -1.0;
+    bool   any_lane   = false;
+
+    std::cout << "[GreedyAging] Intersection " << intersection_id
+              << " — scoring lanes:\n";
+
+    if (state_body.contains("lanes") && state_body["lanes"].is_array()) {
+        for (const auto& lane : state_body["lanes"]) {
+            if (!lane.is_object()) continue;
+            const int    lid   = lane.value("lane_id", 0);
+            const std::string dir = lane.value("direction", std::string(""));
+            const double vc    = lane.contains("vehicle_count")    && lane["vehicle_count"].is_number()    ? lane["vehicle_count"].get<double>()    : 0.0;
+            const double dens  = lane.contains("density_pct")      && lane["density_pct"].is_number()      ? lane["density_pct"].get<double>()      : 0.0;
+            const double wait  = lane.contains("waiting_time_sec") && lane["waiting_time_sec"].is_number() ? lane["waiting_time_sec"].get<double>() : 0.0;
+            const double score = vc * 1.5 + dens * 0.5 + wait * 0.2;
+
+            std::cout << "  Lane " << lid
+                      << " (" << (dir.empty() ? "?" : dir) << ")"
+                      << "  vc=" << vc
+                      << "  dens=" << dens << "%"
+                      << "  wait=" << wait << "s"
+                      << "  => score=" << std::fixed << std::setprecision(2) << score
+                      << (score > best_score ? "  <-- best so far" : "")
+                      << "\n";
+
+            if (score > best_score) { best_score = score; best_lane = lid; }
+            any_lane = true;
+        }
+    }
+
+    const int phase_id = (best_lane % 2 == 0) ? 0 : 1;
+
+    if (any_lane) {
+        std::cout << "[GreedyAging] Winner: lane " << best_lane
+                  << "  score=" << std::fixed << std::setprecision(2) << best_score
+                  << "  => Phase" << phase_id
+                  << "  (reason: highest_score)\n";
+    } else {
+        std::cout << "[GreedyAging] No lane data — defaulting to Phase0\n";
+    }
+
+    return nlohmann::json({
+        {"action",          std::string("Phase") + std::to_string(phase_id)},
+        {"reason",          std::string("server_fallback_greedy_aging lane=") + std::to_string(best_lane)},
+        {"intersection_id", intersection_id},
+        {"phase_id",        phase_id},
+    });
+}
+

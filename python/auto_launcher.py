@@ -15,7 +15,8 @@ import random
 import threading
 import argparse
 import json
-from typing import Dict, List
+import os
+from typing import Dict, List, Optional
 
 import cv2
 import numpy as np
@@ -122,8 +123,10 @@ class SimulatedIntersection:
 class AutoLauncher:
     """Discovers intersections in SQL Server and starts simulations or analyzers"""
 
-    def __init__(self, server_url: str = "http://127.0.0.1:8000/state", use_camera: bool = False):
-        self.server_url = server_url
+    def __init__(self, server_url: Optional[str] = None, use_camera: bool = False):
+        self.server_url = server_url or os.environ.get(
+            "STATE_ENDPOINT", "http://127.0.0.1:8000/state"
+        )
         self.use_camera = use_camera
         self.intersections_config: List[dict] = []
         self.simulators: Dict[int, SimulatedIntersection] = {}
@@ -240,7 +243,11 @@ class AutoLauncher:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Smart Traffic Auto Launcher")
     parser.add_argument("--camera", action="store_true", help="Use real camera")
-    parser.add_argument("--server", default="http://127.0.0.1:8000/state", help="Server address")
+    parser.add_argument(
+        "--server",
+        default=os.environ.get("STATE_ENDPOINT", "http://127.0.0.1:8000/state"),
+        help="Server /state endpoint URL (overrides $STATE_ENDPOINT)",
+    )
     args = parser.parse_args()
 
     launcher = AutoLauncher(server_url=args.server, use_camera=args.camera)

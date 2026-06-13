@@ -37,8 +37,19 @@ public:
     explicit WebSocketHub(int port = 9001);
     ~WebSocketHub();
 
-    void start();   // launches background accept thread
+    void start();   // launches background accept thread on port()
     void stop();    // closes all connections; safe to call multiple times
+
+    // Adopt an already-accepted TCP socket. Performs the RFC-6455 handshake
+    // and runs the per-client read loop. Use this when an external Router
+    // owns the listening socket (port unification). Safe to call from any
+    // thread; the socket lifecycle becomes owned by the hub.
+    void adopt_socket(uintptr_t raw_sock);
+
+    // Disable the built-in TCP listener. Used when an external Router will
+    // feed sockets via adopt_socket(). Must be called before start() — or
+    // start() can simply be skipped.
+    void disable_own_listener() { own_listener_enabled_ = false; }
 
     // Broadcast a JSON message to ALL connected clients.
     void broadcast_all(const std::string& json_msg);
@@ -52,6 +63,7 @@ private:
     int               port_;
     uintptr_t         listen_sock_{~uintptr_t(0)}; // INVALID_SOCKET
     std::atomic<bool> running_{false};
+    std::atomic<bool> own_listener_enabled_{true};
     std::thread       accept_thread_;
 
     std::mutex                              clients_mutex_;

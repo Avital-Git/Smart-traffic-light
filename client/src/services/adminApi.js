@@ -216,3 +216,37 @@ export async function getIntersectionConflicts(intersectionId) {
   });
   return parseResponse(response);
 }
+
+export async function adminListUsers() {
+  const response = await fetch(`${API_BASE}/admin/users`, {
+    method: 'GET',
+    headers: authHeaders()
+  });
+  return parseResponse(response);
+}
+
+export async function adminCreateUser(payload) {
+  const response = await fetch(`${API_BASE}/admin/users`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify(payload)
+  });
+  return parseResponse(response);
+}
+
+export async function adminDeleteUser(userId) {
+  const response = await fetch(`${API_BASE}/admin/users/${userId}`, {
+    method: 'DELETE',
+    headers: authHeaders()
+  });
+  return parseResponse(response);
+}
+
+export async function adminChangeUserPassword(userId, payload) {
+  const response = await fetch(`${API_BASE}/admin/users/${userId}/password`, {
+    method: 'PUT',
+    headers: authHeaders(),
+    body: JSON.stringify(payload)
+  });
+  return parseResponse(response);
+}

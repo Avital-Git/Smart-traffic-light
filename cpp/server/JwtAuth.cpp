@@ -1,4 +1,5 @@
 #include "JwtAuth.h"
+#include "Database.h"
 
 #include <windows.h>
 #include <bcrypt.h>
@@ -10,6 +11,7 @@
 #include <iomanip>
 #include <nlohmann/json.hpp>
 #include <optional>
+#include <random>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -23,8 +25,6 @@ namespace {
 
 constexpr int ADMIN_JWT_EXPIRATION_MINUTES = 480;
 const char* DEFAULT_ADMIN_SECRET = "super-secret-admin-key-change-in-production";
-const char* DEFAULT_ADMIN_USERNAME = "admin";
-const char* DEFAULT_ADMIN_PASSWORD_SHA256 = "6fb34a4fba55fe6159d89d072634203e92e5a501c850583c8bcdf07997ad0b1f";
 
 std::string get_env_or(const char* name, const char* fallback) {
     const char* value = std::getenv(name);
@@ -185,8 +185,18 @@ long long now_epoch_seconds() {
 } // namespace
 
 bool verify_admin_password(const std::string& username, const std::string& password) {
-    if (username != DEFAULT_ADMIN_USERNAME) return false;
-    return to_hex(sha256_bytes(password)) == DEFAULT_ADMIN_PASSWORD_SHA256;
+    std::string hash;
+    std::string salt;
+    if (!db_get_admin_credentials(username, hash, salt)) {
+        return false;
+    }
+
+    const std::string expected = to_hex(sha256_bytes(salt + password));
+    const bool ok = (expected == hash);
+    if (ok) {
+        db_touch_admin_last_login(username);
+    }
+    return ok;
 }
 
 AdminTokenResponse create_admin_token(const std::string& username) {
@@ -258,6 +268,25 @@ std::optional<std::string> extract_bearer_token(const std::string& authorization
 
 int admin_expiration_seconds() {
     return ADMIN_JWT_EXPIRATION_MINUTES * 60;
+}
+
+std::string hash_password_with_salt(const std::string& salt, const std::string& password) {
+    return to_hex(sha256_bytes(salt + password));
+}
+
+std::string generate_salt_hex(size_t num_random_bytes) {
+    if (num_random_bytes == 0) {
+        return "";
+    }
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<int> dist(0, 255);
+    std::vector<unsigned char> bytes(num_random_bytes);
+    for (size_t i = 0; i < num_random_bytes; ++i) {
+        bytes[i] = static_cast<unsigned char>(dist(gen));
+    }
+    return to_hex(bytes);
 }
 
 } // namespace jwt_auth

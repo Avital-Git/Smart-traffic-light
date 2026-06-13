@@ -22,6 +22,7 @@ intersection_vision.py
 
 import cv2
 import numpy as np
+import os
 import time
 import json
 import hmac
@@ -116,8 +117,10 @@ class IntersectionState:
         return json.dumps(data, ensure_ascii=False)
 
 
-def post_state_to_server(state: IntersectionState, server_url: str = "http://127.0.0.1:8000/state") -> Optional[str]:
+def post_state_to_server(state: IntersectionState, server_url: Optional[str] = None) -> Optional[str]:
     """שולח מצב לשרת FastAPI."""
+    if server_url is None:
+        server_url = os.environ.get("STATE_ENDPOINT", "http://127.0.0.1:8000/state")
     try:
         data = state.to_json().encode("utf-8")
         request = urllib.request.Request(
@@ -385,7 +388,7 @@ if __name__ == "__main__":
         num_lanes=3,
         camera_source=0,
         sample_interval_sec=1.0,
-        server_url="http://127.0.0.1:8000/state",
+        server_url=os.environ.get("STATE_ENDPOINT", "http://127.0.0.1:8000/state"),
     )
 
     while True:

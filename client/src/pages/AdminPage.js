@@ -1,12 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  adminChangeUserPassword,
   adminClearEmergency,
+  adminCreateUser,
   adminCreateLane,
   adminCreateIntersection,
+  adminDeleteUser,
   adminDeleteLane,
   adminGetIntersection,
   adminListLanes,
   adminListIntersections,
+  adminListUsers,
   adminLogin,
   adminManualControl,
   adminNeighbors,
@@ -36,6 +40,7 @@ const EMPTY_FORM = {
 
 export function AdminPage() {
   const [loggedIn, setLoggedIn] = useState(false);
+  const [currentAdminUsername, setCurrentAdminUsername] = useState('');
   const [loginForm, setLoginForm] = useState({ username: 'admin', password: '' });
   const [loginError, setLoginError] = useState('');
 
@@ -67,6 +72,14 @@ export function AdminPage() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
+  const [adminUsers, setAdminUsers] = useState([]);
+  const [showAddUserForm, setShowAddUserForm] = useState(false);
+  const [addUserForm, setAddUserForm] = useState({ username: '', password: '', confirmPassword: '' });
+  const [editingPasswordUserId, setEditingPasswordUserId] = useState(null);
+  const [passwordForm, setPasswordForm] = useState({ password: '', confirmPassword: '' });
+  const [userMgmtMessage, setUserMgmtMessage] = useState('');
+  const [userMgmtError, setUserMgmtError] = useState('');
+
   const selectedIntersection = useMemo(
     () => intersections.find((x) => String(x.intersection?.id || x.id) === String(selectedId)) || null,
     [intersections, selectedId]
@@ -79,11 +92,37 @@ export function AdminPage() {
     verifyAdminToken().then((result) => {
       if (result.ok) {
         setLoggedIn(true);
+        setCurrentAdminUsername(result?.data?.username || '');
       } else {
         clearAdminToken();
       }
     });
   }, []);
+
+  useEffect(() => {
+    if (!loggedIn) return;
+
+    let isMounted = true;
+
+    const loadUsers = async () => {
+      const result = await adminListUsers();
+      if (!isMounted) return;
+
+      if (!result.ok) {
+        setUserMgmtError(`טעינת משתמשים נכשלה: ${result.detail}`);
+        return;
+      }
+
+      setAdminUsers(result.data.users || []);
+      setUserMgmtError('');
+    };
+
+    loadUsers();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [loggedIn]);
 
   useEffect(() => {
     if (!loggedIn) return;
@@ -232,16 +271,132 @@ export function AdminPage() {
     }
 
     setLoggedIn(true);
+    const verifyResult = await verifyAdminToken();
+    if (verifyResult.ok) {
+      setCurrentAdminUsername(verifyResult?.data?.username || loginForm.username);
+    } else {
+      setCurrentAdminUsername(loginForm.username);
+    }
     setMessage('התחברות מנהל הצליחה.');
   }
 
   function handleLogout() {
     clearAdminToken();
     setLoggedIn(false);
+    setCurrentAdminUsername('');
     setDetails(null);
     setNeighbors([]);
     setLanes([]);
+    setAdminUsers([]);
+    setShowAddUserForm(false);
+    setEditingPasswordUserId(null);
+    setUserMgmtMessage('');
+    setUserMgmtError('');
     setMessage('נותקת מחשבון המנהל.');
+  }
+
+  async function refreshAdminUsers() {
+    const result = await adminListUsers();
+    if (!result.ok) {
+      setUserMgmtError(`טעינת משתמשים נכשלה: ${result.detail}`);
+      return false;
+    }
+    setAdminUsers(result.data.users || []);
+    setUserMgmtError('');
+    return true;
+  }
+
+  async function handleCreateAdminUser(e) {
+    e.preventDefault();
+    setUserMgmtError('');
+    setUserMgmtMessage('');
+
+    const username = addUserForm.username.trim();
+    const password = addUserForm.password;
+    const confirmPassword = addUserForm.confirmPassword;
+
+    if (!username) {
+      setUserMgmtError('יש להזין שם משתמש.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setUserMgmtError('הסיסמה ואימות הסיסמה אינם תואמים.');
+      return;
+    }
+
+    const result = await adminCreateUser({ username, password, confirm_password: confirmPassword });
+    if (!result.ok) {
+      setUserMgmtError(`יצירת משתמש נכשלה: ${result.detail}`);
+      return;
+    }
+
+    setAddUserForm({ username: '', password: '', confirmPassword: '' });
+    setShowAddUserForm(false);
+    setUserMgmtMessage(`המשתמש ${username} נוצר בהצלחה.`);
+    await refreshAdminUsers();
+  }
+
+  async function handleDeleteAdminUser(userId) {
+    setUserMgmtError('');
+    setUserMgmtMessage('');
+
+    const userToDelete = (adminUsers || []).find((u) => Number(u.user_id) === Number(userId));
+    const usernameToDelete = userToDelete?.username || `#${userId}`;
+    const confirmed = window.confirm(`האם למחוק את המשתמש ${usernameToDelete}? פעולה זו אינה הפיכה.`);
+    if (!confirmed) {
+      return;
+    }
+
+    const result = await adminDeleteUser(userId);
+    if (!result.ok) {
+      setUserMgmtError(`מחיקת משתמש נכשלה: ${result.detail}`);
+      return;
+    }
+
+    setUserMgmtMessage('המשתמש נמחק בהצלחה.');
+    await refreshAdminUsers();
+  }
+
+  function startChangePassword(userId) {
+    setEditingPasswordUserId(userId);
+    setPasswordForm({ password: '', confirmPassword: '' });
+    setUserMgmtError('');
+    setUserMgmtMessage('');
+  }
+
+  function cancelChangePassword() {
+    setEditingPasswordUserId(null);
+    setPasswordForm({ password: '', confirmPassword: '' });
+  }
+
+  async function handleChangeUserPassword(userId) {
+    setUserMgmtError('');
+    setUserMgmtMessage('');
+
+    if (passwordForm.password !== passwordForm.confirmPassword) {
+      setUserMgmtError('הסיסמה החדשה ואימות הסיסמה אינם תואמים.');
+      return;
+    }
+
+    const result = await adminChangeUserPassword(userId, {
+      password: passwordForm.password,
+      confirm_password: passwordForm.confirmPassword
+    });
+    if (!result.ok) {
+      setUserMgmtError(`עדכון סיסמה נכשל: ${result.detail}`);
+      return;
+    }
+
+    cancelChangePassword();
+    setUserMgmtMessage('הסיסמה עודכנה בהצלחה.');
+    await refreshAdminUsers();
+  }
+
+  function formatAdminDate(value) {
+    if (!value) return '—';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value;
+    return d.toLocaleString('he-IL');
   }
 
   async function handleCreate(e) {
@@ -643,6 +798,9 @@ export function AdminPage() {
         <div className="card compact">
           <h2>חשבון מנהל</h2>
           <p>מחובר כעת ומאומת מול השרת.</p>
+          <p className="muted" style={{ marginBottom: 8 }}>
+            משתמש: <strong>{currentAdminUsername || '—'}</strong>
+          </p>
           <button className="button" onClick={handleLogout}>התנתק</button>
         </div>
       </div>
@@ -997,7 +1155,132 @@ export function AdminPage() {
               </div>
             ))}
           </div>
-        </div>      </div>
+        </div>
+      </div>
+
+      <div className="admin-grid" style={{ marginTop: 16 }}>
+        <div className="card">
+          <h3>ניהול משתמשי מערכת</h3>
+          <p className="muted">ניהול משתמשי אדמין למערכת.</p>
+
+          {userMgmtMessage && <div className="message" style={{ marginBottom: 10 }}>{userMgmtMessage}</div>}
+          {userMgmtError && <div className="error-banner" style={{ padding: 10, marginBottom: 10 }}>{userMgmtError}</div>}
+
+          <div style={{ marginBottom: 10 }}>
+            <button
+              className="button primary"
+              type="button"
+              onClick={() => {
+                setShowAddUserForm((v) => !v);
+                setAddUserForm({ username: '', password: '', confirmPassword: '' });
+                setUserMgmtError('');
+              }}
+            >
+              {showAddUserForm ? 'סגור טופס הוספה' : 'הוסף משתמש חדש'}
+            </button>
+          </div>
+
+          {showAddUserForm && (
+            <form onSubmit={handleCreateAdminUser} style={{ marginBottom: 14 }}>
+              <div className="admin-two-col">
+                <input
+                  className="input"
+                  placeholder="שם משתמש"
+                  value={addUserForm.username}
+                  onChange={(e) => setAddUserForm((cur) => ({ ...cur, username: e.target.value }))}
+                  required
+                />
+                <input
+                  className="input"
+                  type="password"
+                  placeholder="סיסמה"
+                  value={addUserForm.password}
+                  onChange={(e) => setAddUserForm((cur) => ({ ...cur, password: e.target.value }))}
+                  required
+                />
+              </div>
+              <input
+                className="input"
+                type="password"
+                placeholder="אימות סיסמה"
+                value={addUserForm.confirmPassword}
+                onChange={(e) => setAddUserForm((cur) => ({ ...cur, confirmPassword: e.target.value }))}
+                required
+              />
+              <button className="button primary" type="submit">שמור משתמש</button>
+            </form>
+          )}
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: 'right', borderBottom: '1px solid #e2e8f0', padding: '8px' }}>שם משתמש</th>
+                  <th style={{ textAlign: 'right', borderBottom: '1px solid #e2e8f0', padding: '8px' }}>נוצר בתאריך</th>
+                  <th style={{ textAlign: 'right', borderBottom: '1px solid #e2e8f0', padding: '8px' }}>התחברות אחרונה</th>
+                  <th style={{ textAlign: 'right', borderBottom: '1px solid #e2e8f0', padding: '8px' }}>פעולות</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(adminUsers || []).length === 0 && (
+                  <tr>
+                    <td colSpan={4} style={{ padding: '10px', color: '#64748b' }}>אין משתמשים להצגה.</td>
+                  </tr>
+                )}
+                {(adminUsers || []).map((u) => (
+                  <tr key={u.user_id}>
+                    <td style={{ borderBottom: '1px solid #f1f5f9', padding: '8px' }}>{u.username}</td>
+                    <td style={{ borderBottom: '1px solid #f1f5f9', padding: '8px' }}>{formatAdminDate(u.created_at)}</td>
+                    <td style={{ borderBottom: '1px solid #f1f5f9', padding: '8px' }}>{formatAdminDate(u.last_login)}</td>
+                    <td style={{ borderBottom: '1px solid #f1f5f9', padding: '8px' }}>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <button className="button" type="button" onClick={() => startChangePassword(u.user_id)}>
+                          שינוי סיסמה
+                        </button>
+                        {u.username !== currentAdminUsername && (
+                          <button className="button danger" type="button" onClick={() => handleDeleteAdminUser(u.user_id)}>
+                            מחק
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {editingPasswordUserId != null && (
+            <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid #e2e8f0' }}>
+              <h4 style={{ marginBottom: 8 }}>שינוי סיסמה למשתמש #{editingPasswordUserId}</h4>
+              <div className="admin-two-col">
+                <input
+                  className="input"
+                  type="password"
+                  placeholder="סיסמה חדשה"
+                  value={passwordForm.password}
+                  onChange={(e) => setPasswordForm((cur) => ({ ...cur, password: e.target.value }))}
+                />
+                <input
+                  className="input"
+                  type="password"
+                  placeholder="אימות סיסמה חדשה"
+                  value={passwordForm.confirmPassword}
+                  onChange={(e) => setPasswordForm((cur) => ({ ...cur, confirmPassword: e.target.value }))}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="button primary" type="button" onClick={() => handleChangeUserPassword(editingPasswordUserId)}>
+                  עדכן סיסמה
+                </button>
+                <button className="button" type="button" onClick={cancelChangePassword}>
+                  בטל
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </>
   );
 }

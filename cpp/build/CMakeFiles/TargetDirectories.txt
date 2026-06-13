@@ -1,3 +1,12 @@
 C:/Users/User/Desktop/smart traffic project/cpp/build/CMakeFiles/smart_traffic_controller.dir
+C:/Users/User/Desktop/smart traffic project/cpp/build/CMakeFiles/traffic_server.dir
+C:/Users/User/Desktop/smart traffic project/cpp/build/CMakeFiles/PACKAGE.dir
+C:/Users/User/Desktop/smart traffic project/cpp/build/CMakeFiles/INSTALL.dir
 C:/Users/User/Desktop/smart traffic project/cpp/build/CMakeFiles/ALL_BUILD.dir
 C:/Users/User/Desktop/smart traffic project/cpp/build/CMakeFiles/ZERO_CHECK.dir
+C:/Users/User/Desktop/smart traffic project/cpp/build/_deps/httplib-build/CMakeFiles/PACKAGE.dir
+C:/Users/User/Desktop/smart traffic project/cpp/build/_deps/httplib-build/CMakeFiles/INSTALL.dir
+C:/Users/User/Desktop/smart traffic project/cpp/build/_deps/httplib-build/CMakeFiles/ALL_BUILD.dir
+C:/Users/User/Desktop/smart traffic project/cpp/build/_deps/nlohmann_json-build/CMakeFiles/PACKAGE.dir
+C:/Users/User/Desktop/smart traffic project/cpp/build/_deps/nlohmann_json-build/CMakeFiles/INSTALL.dir
+C:/Users/User/Desktop/smart traffic project/cpp/build/_deps/nlohmann_json-build/CMakeFiles/ALL_BUILD.dir

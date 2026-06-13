@@ -2,6 +2,28 @@ const API_BASE = 'http://127.0.0.1:8000';
 const WS_BASE = API_BASE.replace(/^http/i, 'ws');
 const ADMIN_TOKEN_KEY = 'smart_traffic_admin_token';
 
+// Module-level cache so layout is fetched exactly once per intersection ID.
+// This prevents lane direction labels from flickering back to numbers on every
+// polling cycle or WebSocket reconnect when a transient layout fetch fails.
+const _layoutCache = new Map();
+
+async function _fetchLayoutOnce(intersectionId) {
+  if (_layoutCache.has(intersectionId)) {
+    return _layoutCache.get(intersectionId);
+  }
+  try {
+    const response = await fetch(`${API_BASE}/intersection/${intersectionId}/layout`);
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (data && Array.isArray(data.lane_directions)) {
+      _layoutCache.set(intersectionId, data);
+    }
+    return data;
+  } catch {
+    return null;
+  }
+}
+
 function authHeaders(base = {}) {
   const token = window.localStorage.getItem(ADMIN_TOKEN_KEY);
   return token
@@ -113,7 +135,16 @@ export async function getNetworkMetrics() {
 }
 
 export async function getIntersectionLayout(intersectionId) {
-  return safeFetch(`${API_BASE}/intersection/${intersectionId}/layout`, () => null);
+  // Use the module-level cache so callers always get the last known layout
+  // and never degrade back to an empty array due to a transient fetch failure.
+  if (_layoutCache.has(intersectionId)) {
+    return _layoutCache.get(intersectionId);
+  }
+  const data = await safeFetch(`${API_BASE}/intersection/${intersectionId}/layout`, () => null);
+  if (data && Array.isArray(data.lane_directions)) {
+    _layoutCache.set(intersectionId, data);
+  }
+  return data;
 }
 
 export async function getIntersectionStatus(intersectionId) {
@@ -143,14 +174,33 @@ function mapStateToStatus(state, action, intersectionId, layout) {
     ? layout.lane_directions
     : [];
 
-  const directionLabel = (laneId) => {
-    const d = laneDirections[laneId];
-    if (!d) return `נתיב ${laneId}`;
-    if (d === 'N') return 'צפון';
-    if (d === 'S') return 'דרום';
-    if (d === 'E') return 'מזרח';
-    if (d === 'W') return 'מערב';
-    return `נתיב ${laneId}`;
+  // Translate a raw direction code to a Hebrew label.
+  function translateDirection(d) {
+    if (!d) return null;
+    if (d === 'N')  return 'צפון';
+    if (d === 'S')  return 'דרום';
+    if (d === 'E')  return 'מזרח';
+    if (d === 'W')  return 'מערב';
+    if (d === 'NE') return 'צפון-מזרח';
+    if (d === 'NW') return 'צפון-מערב';
+    if (d === 'SE') return 'דרום-מזרח';
+    if (d === 'SW') return 'דרום-מערב';
+    return d; // return raw code if not one of the above
+  }
+
+  // Primary: use the `direction` field already stamped onto the lane object by
+  // the C++ normalization pass (always canonical DB direction).
+  // Fallback: look up by 0-based lane_id in the layout array.
+  // This means lane names are stable even if the layout fetch is delayed or
+  // transiently fails, because the state itself carries the direction.
+  const directionLabel = (lane) => {
+    // lane may be passed as the full object OR just the laneId (legacy callers).
+    const laneObj  = (typeof lane === 'object' && lane !== null) ? lane : null;
+    const laneId   = laneObj ? (laneObj.lane_id ?? lane) : lane;
+    const fromState = laneObj?.direction ?? null;
+    const fromLayout = laneDirections[laneId] ?? null;
+    const code = fromState || fromLayout;
+    return translateDirection(code) ?? `נתיב ${laneId}`;
   };
 
   return {
@@ -165,13 +215,13 @@ function mapStateToStatus(state, action, intersectionId, layout) {
     emergencyVehicleId: state.emergency_signal?.vehicle_id ?? null,
     updatedAt: new Date((state.timestamp || Date.now() / 1000) * 1000).toLocaleString('he-IL'),
     signals: lanes.map((lane) => ({
-      direction: directionLabel(lane.lane_id),
+      direction: directionLabel(lane),
       color: laneToSignalColor(currentPhase, lane.lane_id),
       queue: lane.vehicle_count,
       waitingSec: lane.waiting_time_sec
     })),
     chart: lanes.map((lane, index) => ({
-      time: `נתיב ${lane.lane_id}`,
+      time: directionLabel(lane),
       queue: lane.vehicle_count,
       avgWaitSec: lane.waiting_time_sec,
       index
@@ -200,10 +250,16 @@ export function subscribeIntersectionUpdates(intersectionId, onUpdate) {
     return () => {};
   }
 
-  let cachedLayout = null;
-  getIntersectionLayout(intersectionId).then((layout) => {
-    cachedLayout = layout;
-  });
+  // Use the module-level cache immediately (populated on first call to
+  // getIntersectionLayout or _fetchLayoutOnce).  If it's not yet cached we
+  // kick off the fetch — but even before it resolves, the state's own
+  // `lane.direction` field provides direction labels without flickering.
+  let cachedLayout = _layoutCache.get(intersectionId) ?? null;
+  if (!cachedLayout) {
+    _fetchLayoutOnce(intersectionId).then((layout) => {
+      if (layout) cachedLayout = layout;
+    });
+  }
 
   const socket = new WebSocket(`${WS_BASE}/ws/intersection/${intersectionId}`);
 

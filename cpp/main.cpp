@@ -11,6 +11,7 @@
 #include "RLAgent.h"
 #include "Simulation.h"
 #include "ConflictConfig.h"
+#include "GreedyAgingController.h"
 #include "NeighborCoordConfig.h"
 #include "PhaseConfig.h"
 #include "SelfTests.h"
@@ -549,8 +550,8 @@ std::string lane_topology_key(const ParsedPacketState& s) {
     return oss.str();
 }
 
-void run_with_server(const std::string& host, int port) {
-    std::cout << "\n=== CONNECTED MODE (Unified RL Path) ===\n";
+void run_with_server(const std::string& host, int port, bool useGreedyController = false) {
+    std::cout << "\n=== CONNECTED MODE (" << (useGreedyController ? "Greedy-Aging" : "Unified RL") << " Path) ===\n";
     std::cout << "Server: " << host << ":" << port << "\n\n";
 
     smart_traffic::HttpClient client(host, port);
@@ -575,6 +576,7 @@ void run_with_server(const std::string& host, int port) {
     std::cout << "Phase config: " << phaseConfig.source
               << " (intersections=" << phaseConfig.phasesByIntersection.size() << ")\n";
     traffic::RLAgent agent({}, thresholds, neighborConfig);
+    traffic::GreedyAgingController greedy;
     int activeThresholdIntersection = -1;
     int activeConflictIntersection = -1;
     const std::string qTablePath = "qtable.tsv";
@@ -671,7 +673,9 @@ void run_with_server(const std::string& host, int port) {
         const traffic::JunctionState prevState = with_neighbor_signals(junction->currentState(), parsed.neighbors);
         const auto emergencyPhase = junction->resolveEmergencyPhase();
 
-        int selectedPhase = agent.selectAction(prevState, junction->validPhases(), emergencyPhase);
+        int selectedPhase = useGreedyController
+            ? greedy.selectAction(prevState, junction->validPhases(), emergencyPhase)
+            : agent.selectAction(prevState, junction->validPhases(), emergencyPhase);
         if (!junction->applyPhase(selectedPhase, nowSec)) {
             selectedPhase = junction->activePhaseId();
             if (selectedPhase < 0 && !junction->validPhases().empty()) {
@@ -762,9 +766,18 @@ int main(int argc, char* argv[]) {
     std::cout << "========================================\n";
 
     if (argc > 1 && std::string(argv[1]) == "--server") {
-        std::string host = argc > 2 ? argv[2] : "127.0.0.1";
-        int port = argc > 3 ? std::atoi(argv[3]) : 8000;
-        run_with_server(host, port);
+        std::string host = "127.0.0.1";
+        int port = 8000;
+        bool useGreedy = false;
+        std::vector<std::string> positional;
+        for (int i = 2; i < argc; ++i) {
+            std::string a = argv[i];
+            if (a == "--greedy") useGreedy = true;
+            else                 positional.push_back(a);
+        }
+        if (positional.size() >= 1) host = positional[0];
+        if (positional.size() >= 2) port = std::atoi(positional[1].c_str());
+        run_with_server(host, port, useGreedy);
     } else if (argc > 1 && std::string(argv[1]) == "--conflict-check") {
         std::string host = argc > 2 ? argv[2] : "127.0.0.1";
         int port = argc > 3 ? std::atoi(argv[3]) : 8000;
@@ -779,7 +792,7 @@ int main(int argc, char* argv[]) {
     } else {
         std::cout << "Usage:\n";
         std::cout << "  smart_traffic_controller.exe --simulate\n";
-        std::cout << "  smart_traffic_controller.exe --server [host] [port]\n\n";
+        std::cout << "  smart_traffic_controller.exe --server [host] [port] [--greedy]\n\n";
         std::cout << "  smart_traffic_controller.exe --conflict-check [host] [port] [intersection_id]\n\n";
         std::cout << "  smart_traffic_controller.exe --selftest\n\n";
         traffic_sim::run_simulation_comparison_verbose();

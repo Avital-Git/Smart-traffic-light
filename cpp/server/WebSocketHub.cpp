@@ -156,6 +156,10 @@ WebSocketHub::~WebSocketHub() { stop(); }
 
 void WebSocketHub::start() {
     running_ = true;
+    if (!own_listener_enabled_) {
+        std::cout << "[WSHub] running in adopt-only mode (external Router owns the port)\n";
+        return;
+    }
     accept_thread_ = std::thread(&WebSocketHub::accept_loop, this);
 }
 
@@ -369,6 +373,13 @@ void WebSocketHub::broadcast_all(const std::string& msg) {
     broadcast_impl(-1, msg);
 }
 
+void WebSocketHub::adopt_socket(uintptr_t raw_sock) {
+    // Run the same per-client handler on a detached thread so the router
+    // can return immediately to accept the next connection.
+    running_ = true; // safe if start() hasn't been called yet
+    std::thread(&WebSocketHub::handle_client, this, raw_sock).detach();
+}
+
 void WebSocketHub::broadcast_intersection(int iid, const std::string& msg) {
     broadcast_impl(iid, msg);
 }
@@ -389,8 +400,12 @@ void WebSocketHub::broadcast_impl(int filter_iid, const std::string& msg) {
     for (auto& c : snapshot) {
         if (!c->alive) continue;
         // filter_iid < 0  → broadcast_all  → send to everyone
-        // filter_iid >= 0 → per-intersection → only matching subscribers
-        if (filter_iid >= 0 && c->intersection_id != filter_iid) continue;
+        // filter_iid >= 0 → per-intersection → matching subscribers AND
+        //                   global ("/ws/updates", intersection_id == -1)
+        //                   subscribers, which mirrors the Python LiveUpdateHub.
+        if (filter_iid >= 0 &&
+            c->intersection_id != filter_iid &&
+            c->intersection_id != -1) continue;
 
         std::lock_guard<std::mutex> lk(c->send_mutex);
         if (!ws_send(to_sock(c->sock), msg)) {
