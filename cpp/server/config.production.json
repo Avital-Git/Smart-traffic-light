@@ -1,0 +1,15 @@
+{
+  "rl": {
+    "alpha": 0.1,
+    "gamma": 0.95,
+    "epsilon": 0.15,
+    "epsilon_min": 0.02,
+    "epsilon_decay": 0.995
+  },
+  "junction": {
+    "min_green_sec": 5.0,
+    "max_green_sec": 60.0,
+    "yellow_sec": 2.0,
+    "all_red_sec": 1.0
+  }
+}

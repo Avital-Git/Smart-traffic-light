@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   adminChangeUserPassword,
   adminClearEmergency,
@@ -41,6 +41,7 @@ const EMPTY_FORM = {
 export function AdminPage() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [currentAdminUsername, setCurrentAdminUsername] = useState('');
+  const [currentAdminRole, setCurrentAdminRole] = useState('');
   const [loginForm, setLoginForm] = useState({ username: 'admin', password: '' });
   const [loginError, setLoginError] = useState('');
 
@@ -93,6 +94,7 @@ export function AdminPage() {
       if (result.ok) {
         setLoggedIn(true);
         setCurrentAdminUsername(result?.data?.username || '');
+        setCurrentAdminRole(result?.data?.role || 'regular_admin');
       } else {
         clearAdminToken();
       }
@@ -274,8 +276,10 @@ export function AdminPage() {
     const verifyResult = await verifyAdminToken();
     if (verifyResult.ok) {
       setCurrentAdminUsername(verifyResult?.data?.username || loginForm.username);
+      setCurrentAdminRole(verifyResult?.data?.role || result.data?.role || 'regular_admin');
     } else {
       setCurrentAdminUsername(loginForm.username);
+      setCurrentAdminRole(result.data?.role || 'regular_admin');
     }
     setMessage('התחברות מנהל הצליחה.');
   }
@@ -284,6 +288,7 @@ export function AdminPage() {
     clearAdminToken();
     setLoggedIn(false);
     setCurrentAdminUsername('');
+    setCurrentAdminRole('');
     setDetails(null);
     setNeighbors([]);
     setLanes([]);
@@ -393,7 +398,7 @@ export function AdminPage() {
   }
 
   function formatAdminDate(value) {
-    if (!value) return '—';
+    if (!value) return 'Γאפ';
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return value;
     return d.toLocaleString('he-IL');
@@ -576,7 +581,7 @@ export function AdminPage() {
       return;
     }
 
-    setMessage(`הפעלה ידנית בוצעה לפי נתיבים [${manualSelectedLanes.join(', ')}] → Phase${mappedPhase}.`);
+    setMessage(`הפעלה ידנית בוצעה לפי נתיבים [${manualSelectedLanes.join(', ')}] Γזע Phase${mappedPhase}.`);
   }
 
   async function reloadLanes() {
@@ -799,7 +804,7 @@ export function AdminPage() {
           <h2>חשבון מנהל</h2>
           <p>מחובר כעת ומאומת מול השרת.</p>
           <p className="muted" style={{ marginBottom: 8 }}>
-            משתמש: <strong>{currentAdminUsername || '—'}</strong>
+            משתמש: <strong>{currentAdminUsername || 'Γאפ'}</strong>
           </p>
           <button className="button" onClick={handleLogout}>התנתק</button>
         </div>
@@ -865,10 +870,10 @@ export function AdminPage() {
                   }}
                   title={isBlocked && disabledPair ? `נתיבים ${disabledPair[0]} ו-${disabledPair[1]} לא יכולים להידלק יחד` : ''}
                 >
-                  <strong>Lane #{lane.lane_id}</strong> · {lane.direction}
+                  <strong>Lane #{lane.lane_id}</strong> ┬╖ {lane.direction}
                   {isBlocked && disabledPair && (
                     <span style={{ fontSize: 12, marginInlineStart: 6, color: '#dc2626' }}>
-                      (חסום: {disabledPair[0]}↔{disabledPair[1]})
+                      (חסום: {disabledPair[0]}Γזפ{disabledPair[1]})
                     </span>
                   )}
                 </button>
@@ -994,7 +999,7 @@ export function AdminPage() {
               const isEditing = editingLaneId === lane.lane_id;
               return (
                 <div key={lane.lane_id} className="neighbor-card">
-                  <div><strong>Lane #{lane.lane_id}</strong> · camera_index={lane.camera_index}</div>
+                  <div><strong>Lane #{lane.lane_id}</strong> ┬╖ camera_index={lane.camera_index}</div>
 
                   {isEditing ? (
                     <>
@@ -1027,7 +1032,7 @@ export function AdminPage() {
                   ) : (
                     <>
                       <div>direction: <strong>{lane.direction}</strong></div>
-                      <div>description: {lane.description || '—'}</div>
+                      <div>description: {lane.description || 'Γאפ'}</div>
                       <div style={{ display: 'flex', gap: 8 }}>
                         <button className="button" type="button" onClick={() => startEditLane(lane)}>ערוך</button>
                         <button className="button danger" type="button" onClick={() => handleDeleteLane(lane.lane_id)}>מחק</button>
@@ -1053,7 +1058,7 @@ export function AdminPage() {
             {(lanes || []).length === 0 && <option value="">אין נתיבים זמינים</option>}
             {(lanes || []).map((lane) => (
               <option key={lane.lane_id} value={lane.lane_id}>
-                Lane #{lane.lane_id} · cam {lane.camera_index} · {lane.direction}
+                Lane #{lane.lane_id} ┬╖ cam {lane.camera_index} ┬╖ {lane.direction}
               </option>
             ))}
           </select>
@@ -1069,7 +1074,7 @@ export function AdminPage() {
 
           {emergencyActive && (
             <div className="badge badge-danger" style={{ marginTop: 10 }}>
-              חירום פעיל — ינוקה אוטומטית תוך 30 שניות
+              חירום פעיל Γאפ ינוקה אוטומטית תוך 30 שניות
             </div>
           )}
         </div>
@@ -1094,7 +1099,7 @@ export function AdminPage() {
                 <option value="">בחר נתיב 1</option>
                 {(lanes || []).map((lane) => (
                   <option key={lane.lane_id} value={lane.lane_id}>
-                    Lane #{lane.lane_id} · {lane.direction}
+                    Lane #{lane.lane_id} ┬╖ {lane.direction}
                   </option>
                 ))}
               </select>
@@ -1106,7 +1111,7 @@ export function AdminPage() {
                 <option value="">בחר נתיב 2</option>
                 {(lanes || []).map((lane) => (
                   <option key={lane.lane_id} value={lane.lane_id}>
-                    Lane #{lane.lane_id} · {lane.direction}
+                    Lane #{lane.lane_id} ┬╖ {lane.direction}
                   </option>
                 ))}
               </select>
@@ -1132,7 +1137,7 @@ export function AdminPage() {
                 <div>
                   <strong>Lane #{conflict.lane_id_1}</strong> ({getLaneDirection(conflict.lane_id_1)})
                   {' '}
-                  ↔
+                  Γזפ
                   {' '}
                   <strong>Lane #{conflict.lane_id_2}</strong> ({getLaneDirection(conflict.lane_id_2)})
                 </div>
@@ -1140,7 +1145,7 @@ export function AdminPage() {
                   סוג: <strong>{conflict.conflict_type}</strong>
                   {conflict.created_at && (
                     <>
-                      {' '} · יוצר: {new Date(conflict.created_at).toLocaleString('he-IL')}
+                      {' '} ┬╖ יוצר: {new Date(conflict.created_at).toLocaleString('he-IL')}
                     </>
                   )}
                 </div>
@@ -1166,6 +1171,7 @@ export function AdminPage() {
           {userMgmtMessage && <div className="message" style={{ marginBottom: 10 }}>{userMgmtMessage}</div>}
           {userMgmtError && <div className="error-banner" style={{ padding: 10, marginBottom: 10 }}>{userMgmtError}</div>}
 
+          {currentAdminRole === 'super_admin' && (
           <div style={{ marginBottom: 10 }}>
             <button
               className="button primary"
@@ -1179,6 +1185,7 @@ export function AdminPage() {
               {showAddUserForm ? 'סגור טופס הוספה' : 'הוסף משתמש חדש'}
             </button>
           </div>
+          )}
 
           {showAddUserForm && (
             <form onSubmit={handleCreateAdminUser} style={{ marginBottom: 14 }}>
@@ -1234,10 +1241,12 @@ export function AdminPage() {
                     <td style={{ borderBottom: '1px solid #f1f5f9', padding: '8px' }}>{formatAdminDate(u.last_login)}</td>
                     <td style={{ borderBottom: '1px solid #f1f5f9', padding: '8px' }}>
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                        <button className="button" type="button" onClick={() => startChangePassword(u.user_id)}>
-                          שינוי סיסמה
-                        </button>
-                        {u.username !== currentAdminUsername && (
+                        {(currentAdminRole === 'super_admin' || u.username === currentAdminUsername) && (
+                          <button className="button" type="button" onClick={() => startChangePassword(u.user_id)}>
+                            שינוי סיסמה
+                          </button>
+                        )}
+                        {currentAdminRole === 'super_admin' && u.username !== currentAdminUsername && (
                           <button className="button danger" type="button" onClick={() => handleDeleteAdminUser(u.user_id)}>
                             מחק
                           </button>

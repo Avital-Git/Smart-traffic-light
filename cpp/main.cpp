@@ -590,140 +590,140 @@ void run_with_server(const std::string& host, int port, bool useGreedyController
     constexpr double kStepSec = 0.5;
 
     while (true) {
-        const std::string packet = client.get("/intersection/1/packet");
-        if (packet.empty()) {
-            std::cerr << "Packet request failed\n";
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
-            continue;
+        const std::string packet = client.get("/intersection/1/packet");//קבלת מידע על צומת מהשרת
+        if (packet.empty()) {//אם אין מידע
+            std::cerr << "Packet request failed\n";//הזפסת שגיאה
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));//המתנה לחצי שנייה
+            continue;//חזרה לתחילת הוויל
         }
 
-        ParsedPacketState parsed;
-        if (!parse_packet_state(packet, parsed, neighborAuth)) {
-            std::cerr << "Failed to parse /packet response\n";
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
-            continue;
+        ParsedPacketState parsed;//אובייקט לייצוג מידע הצומת
+        if (!parse_packet_state(packet, parsed, neighborAuth)) {//אם לא הצלחנו לנתח את המידע
+            std::cerr << "Failed to parse /packet response\n";//שגיאה
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));//המתנה לחצי שנייה
+            continue;//חזרה לתחילת הוויל
         }
 
-        if (parsed.intersectionId != activeThresholdIntersection) {
-            thresholds = traffic::loadTrafficThresholdConfigForIntersection(parsed.intersectionId);
-            agent.setThresholdConfig(thresholds);
-            activeThresholdIntersection = parsed.intersectionId;
-            std::cout << "Threshold config for intersection " << parsed.intersectionId
+        if (parsed.intersectionId != activeThresholdIntersection) {//אם הצומת שפעילה כרגע שונה מהצומת שהתקבלה מהשרת
+            thresholds = traffic::loadTrafficThresholdConfigForIntersection(parsed.intersectionId);//טוענים את ספי התנועה עבור הצומת החדש
+            agent.setThresholdConfig(thresholds);//עדכון ספי התנועה בסוכן הלמידה
+            activeThresholdIntersection = parsed.intersectionId;//עדכון הצומת הפעילה לספי התנועה
+            std::cout << "Threshold config for intersection " << parsed.intersectionId// הדפסת מקור ספי התנועה עבור הצומת החדש
                       << ": " << thresholds.source << "\n";
         }
 
-        if (parsed.intersectionId != activeConflictIntersection) {
-            laneConflicts = load_lane_conflicts_from_api(client, parsed.intersectionId);
-            activeConflictIntersection = parsed.intersectionId;
-            std::cout << "Lane conflicts API for intersection " << parsed.intersectionId
+        if (parsed.intersectionId != activeConflictIntersection) {//אם הצומת שפעילה כרגע שונה מהצומת שהתקבלה מהשרת
+            laneConflicts = load_lane_conflicts_from_api(client, parsed.intersectionId);//טוענים את קונפליקטים של הנתיבים עבור הצומת החדש מהשרת
+            activeConflictIntersection = parsed.intersectionId;//עדכון הצומת הפעילה לקונפליקטים של הנתיבים
+            std::cout << "Lane conflicts API for intersection " << parsed.intersectionId// הדפסת מקור קונפליקטים של הנתיבים עבור הצומת החדש
                       << ": " << laneConflicts.source
-                      << " (pairs=" << laneConflicts.conflictPairs.size() << ")\n";
-            print_loaded_conflicts(parsed.intersectionId, laneConflicts);
-            run_conflict_enforcement_smoke_test(parsed.intersectionId, laneConflicts);
+                      << " (pairs=" << laneConflicts.conflictPairs.size() << ")\n";//הדפסת מספר זוגות הקונפליקט שהתקבלו מהשרת
+            print_loaded_conflicts(parsed.intersectionId, laneConflicts);//הדפסת זוגות הקונפליקט שהתקבלו מהשרת
+            run_conflict_enforcement_smoke_test(parsed.intersectionId, laneConflicts);// הרצת בדיקת עשן בסיסית לאכיפת הקונפליקטים של הנתיבים עבור הצומת החדש
         }
 
-        const std::string topology = lane_topology_key(parsed);
-        if (!junction || topology != currentTopology) {
-            std::vector<traffic::Lane> lanes;
-            lanes.reserve(parsed.lanes.size());
-            for (const auto& l : parsed.lanes) {
-                lanes.push_back({
-                    l.laneId,
-                    std::max(0, l.vehicleCount),
-                    std::clamp(l.densityPct, 0.0, 100.0),
-                    std::max(0.0, l.waitingSec),
-                    parsed.emergencyActive && parsed.emergencyLaneId.has_value() && *parsed.emergencyLaneId == l.laneId
+        const std::string topology = lane_topology_key(parsed);//ייצוג טופולוגיית הנתיבים בצומת כמחרוזת ייחודית
+        if (!junction || topology != currentTopology) {//אם אין צומת פעילה כרגע או שהטופולוגיה של הנתיבים שונה מהטופולוגיה הנוכחית
+            std::vector<traffic::Lane> lanes;//וקטור לייצוג הנתיבים בצומת
+            lanes.reserve(parsed.lanes.size());//שמירת מקום לנתיבים
+            for (const auto& l : parsed.lanes) {//עבור כל נתיב שהתקבל מהשרת
+                lanes.push_back({//הוספת נתיב לוקטור הנתיבים עם המידע שהתקבל מהשרת
+                    l.laneId,//מזהה הנתיב
+                    std::max(0, l.vehicleCount),//מספר הרכבים בנתיב (לא יכול להיות שלילי)
+                    std::clamp(l.densityPct, 0.0, 100.0),//אחוז הצפיפות בנתיב (מוגבל בין 0 ל-100)
+                    std::max(0.0, l.waitingSec),//זמן ההמתנה הממוצע ברכבים בנתיב (לא יכול להיות שלילי)
+                    parsed.emergencyActive && parsed.emergencyLaneId.has_value() && *parsed.emergencyLaneId == l.laneId//האם יש רכב חירום פעיל בנתיב הזה
                 });
             }
 
-            phases = traffic::resolveConfiguredPhases(
-                parsed.intersectionId,
-                lane_ids_from_lanes(parsed.lanes),
+            phases = traffic::resolveConfiguredPhases(//נסיון לקבל את שלבי האור הירוק מהקונפיגורציה עבור הצומת הנוכחית
+                parsed.intersectionId,//מזהה הצומת
+                lane_ids_from_lanes(parsed.lanes),//רשימת מזהי הנתיבים בצומת
                 phaseConfig
             );
-            if (phases.empty()) {
-                phases = build_phases_from_lanes(parsed.lanes);
-                std::cout << "Phase config fallback for intersection " << parsed.intersectionId
+            if (phases.empty()) {//אם לא הצלחנו לקבל שלבי אור ירוק מהקונפיגורציה עבור הצומת הנוכחית
+                phases = build_phases_from_lanes(parsed.lanes);//בניית שלבי אור ירוק אוטומטית על בסיס הנתיבים בצומת (למשל, כל הנתיבים הזוגיים יחד וכל הנתיבים האי-זוגיים יחד)
+                std::cout << "Phase config fallback for intersection " << parsed.intersectionId// הדפסת הודעת גיבוי לבניית שלבי אור ירוק אוטומטית עבור הצומת הנוכחית
                           << ": using auto phase builder\n";
             }
-            if (phases.empty()) {
-                std::cerr << "No valid phases from packet lanes\n";
-                std::this_thread::sleep_for(std::chrono::milliseconds(500));
-                continue;
+            if (phases.empty()) {//אם עדיין אין שלבי אור ירוק תקפים לאחר ניסיון לקבל מהקונפיגורציה ובניית גיבוי אוטומטית
+                std::cerr << "No valid phases from packet lanes\n";//הדפסת שגיאה שאין שלבי אור ירוק תקפים מהנתיבים שהתקבלו מהשרת
+                std::this_thread::sleep_for(std::chrono::milliseconds(500));//המתנה לחצי שנייה
+                continue;//חזרה לתחילת הוויל
             }
 
-            junction = std::make_unique<traffic::Junction>(
-                parsed.intersectionId,
-                lanes,
-                phases,
+            junction = std::make_unique<traffic::Junction>(//יצירת אובייקט צומת חדש עם המידע שהתקבל מהשרת והקונפיגורציות השונות
+                parsed.intersectionId,//מזהה הצומת
+                lanes,//רשימת הנתיבים בצומת
+                phases,//רשימת הפאזות החוקית
                 3.0,   // minGreenSec: 3 seconds - enables fast switching on empty lanes
                 45.0,  // maxGreenSec: 45 seconds - prevents starvation
-                laneConflicts.conflictPairs
+                laneConflicts.conflictPairs//זוגות הנתיבים בקונפליקט שהתקבלו מהשרת
             );
-            currentTopology = topology;
-            nowSec = 0.0;
+            currentTopology = topology;//עדכון הטופולוגיה הנוכחית
+            nowSec = 0.0;//איפוס הזמן
         }
 
-        for (const auto& l : parsed.lanes) {
-            const bool emergencyOnLane = parsed.emergencyActive && parsed.emergencyLaneId.has_value() && *parsed.emergencyLaneId == l.laneId;
-            junction->updateLaneObservation(l.laneId, l.vehicleCount, emergencyOnLane, l.densityPct);
+        for (const auto& l : parsed.lanes) {//עבור כל נתיב בצומת 
+            const bool emergencyOnLane = parsed.emergencyActive && parsed.emergencyLaneId.has_value() && *parsed.emergencyLaneId == l.laneId;//האם יש רכב חירום פעיל בנתיב הזה
+            junction->updateLaneObservation(l.laneId, l.vehicleCount, emergencyOnLane, l.densityPct);//עדכון המידע על הנתיב 
         }
-        junction->setEmergencySignal(parsed.emergencyActive, parsed.emergencyLaneId);
+        junction->setEmergencySignal(parsed.emergencyActive, parsed.emergencyLaneId);//עדכון המידע על רכב החירום בצומת
 
-        const traffic::JunctionState prevState = with_neighbor_signals(junction->currentState(), parsed.neighbors);
-        const auto emergencyPhase = junction->resolveEmergencyPhase();
+        const traffic::JunctionState prevState = with_neighbor_signals(junction->currentState(), parsed.neighbors);//קבלת המצב הנוכחי של הצומת עם מידע על השכנים
+        const auto emergencyPhase = junction->resolveEmergencyPhase();//קבלת הפאזת החירום אם קיימת
 
-        int selectedPhase = useGreedyController
+        int selectedPhase = useGreedyController// בחירת הפאזה לפעולה: אם משתמשים בבקר החמדן אז לבחור לפי הבקר החמדן, אחרת לבחור לפי סוכן הלמידה
             ? greedy.selectAction(prevState, junction->validPhases(), emergencyPhase)
             : agent.selectAction(prevState, junction->validPhases(), emergencyPhase);
-        if (!junction->applyPhase(selectedPhase, nowSec)) {
-            selectedPhase = junction->activePhaseId();
-            if (selectedPhase < 0 && !junction->validPhases().empty()) {
-                selectedPhase = junction->validPhases().front().phaseId;
-                (void)junction->applyPhase(selectedPhase, nowSec);
+        if (!junction->applyPhase(selectedPhase, nowSec)) {//אם לא הצליח להתחיל את הפאזה שנבחרה
+            selectedPhase = junction->activePhaseId();//לקבל את הפאזה הפעילה הנוכחית
+            if (selectedPhase < 0 && !junction->validPhases().empty()) {//אם אין פאזה פעילה אבל יש פאזה חוקית זמינה
+                selectedPhase = junction->validPhases().front().phaseId;//לבחור את הפאזה החוקית הראשונה
+                (void)junction->applyPhase(selectedPhase, nowSec);//להחיל את הפאזה החוקית הראשונה
             }
         }
 
-        bool emergencyLaneGotGreen = false;
-        if (prevState.emergencyVehicleActive && prevState.emergencyLaneId.has_value()) {
-            emergencyLaneGotGreen = phase_contains_lane(junction->validPhases(), selectedPhase, *prevState.emergencyLaneId);
+        bool emergencyLaneGotGreen = false;//האם נתיב החירום קיבל אור ירוק
+        if (prevState.emergencyVehicleActive && prevState.emergencyLaneId.has_value()) {//אם יש רכב חירום פעיל בנתיב מסוים במצב הקודם
+            emergencyLaneGotGreen = phase_contains_lane(junction->validPhases(), selectedPhase, *prevState.emergencyLaneId);//בדיקה האם הפאזה שנבחרה כוללת את נתיב החירום
         }
 
-        junction->tick(kStepSec);
-        nowSec += kStepSec;
-        const traffic::JunctionState nextState = with_neighbor_signals(junction->currentState(), parsed.neighbors);
+        junction->tick(kStepSec);// עדכון מצב הצומת על בסיס הזמן שעבר
+        nowSec += kStepSec;//עדכון הזמן הכולל
+        const traffic::JunctionState nextState = with_neighbor_signals(junction->currentState(), parsed.neighbors);//קבלת המצב הבא של הצומת עם מידע על השכנים לאחר העדכון
 
-        const bool greenSyncedWithNeighbor = has_busy_synced_neighbor(prevState, selectedPhase, agent.thresholdConfig());
-        const bool greenOppositeToNeighbor = has_busy_opposing_neighbor(prevState, selectedPhase, agent.thresholdConfig());
+        const bool greenSyncedWithNeighbor = has_busy_synced_neighbor(prevState, selectedPhase, agent.thresholdConfig());// האם יש שכן עם פאזה מסונכרנת שזוהתה כעמוסה לפי הספים של סוכן הלמידה
+        const bool greenOppositeToNeighbor = has_busy_opposing_neighbor(prevState, selectedPhase, agent.thresholdConfig());// האם יש שכן עם פאזה מנוגדת שזוהתה כעמוסה לפי הספים של סוכן הלמידה
 
-        const double reward = agent.computeReward(
-            prevState,
-            nextState,
-            selectedPhase,
-            emergencyLaneGotGreen,
-            greenSyncedWithNeighbor,
-            greenOppositeToNeighbor,
-            kStepSec
+        const double reward = agent.computeReward(//חישוב תגמול
+            prevState,//מצב קודם
+            nextState,//מצב הבא
+            selectedPhase,//פאזה שנבחרה
+            emergencyLaneGotGreen,//האם החירום קיבל ירוק
+            greenSyncedWithNeighbor,//האם היה סנכרון עם שכן עמוס
+            greenOppositeToNeighbor,//האם היה ניגוד עם שכן עמוס
+            kStepSec// משך הזמן שלקח לבצע את הפעולה
         );
-        agent.update(prevState, selectedPhase, reward, nextState, junction->validPhases());
-        agent.decayExploration();
+        agent.update(prevState, selectedPhase, reward, nextState, junction->validPhases());//עדכון סוכן הלמידה עם המידע על המעבר שבוצע
+        agent.decayExploration();//הפחתת חקירה- הורדת אפסילון
 
-        const std::string actionText = (selectedPhase >= 0)
+        const std::string actionText = (selectedPhase >= 0)//אם יש פאזה שנבחרה אז להציג את מזהה הפאזה, אחרת להציג "Hold"
             ? ("Phase" + std::to_string(selectedPhase))
             : "Hold";
-
+//בניית גוף הבקשה לשליחת הפעולה שנבחרה בחזרה לשרת
         std::ostringstream body;
         body << "{\"action\":\"" << actionText << "\",";
         body << "\"phase_id\":" << selectedPhase << ",";
         body << "\"reason\":\"cpp_rl_unified\",";
         body << "\"timestamp\":" << parsed.timestamp << "}";
 
-        const std::string postPath = "/intersection/" + std::to_string(parsed.intersectionId) + "/action";
-        const std::string postResp = client.post(postPath, body.str());
+        const std::string postPath = "/intersection/" + std::to_string(parsed.intersectionId) + "/action";//שליחת הפעולה שנבחרה בחזרה לשרת
+        const std::string postResp = client.post(postPath, body.str());//קבלת תגובה מהשרת לאחר שליחת הפעולה
 
-        int totalVehicles = 0;
+        int totalVehicles = 0;//חישוב סך הרכבים בכל הנתיבים בצומת
         for (int c : prevState.vehicleCounts) totalVehicles += c;
-
+//הדפסת המידע על הצומת
         std::cout << "Intersection " << parsed.intersectionId
                   << " | lanes=" << parsed.lanes.size()
                   << " | vehicles=" << totalVehicles
@@ -734,27 +734,27 @@ void run_with_server(const std::string& host, int port, bool useGreedyController
                   << " | post=" << (postResp.empty() ? "failed" : "ok")
                   << "\n";
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));//המתנה לחצי שנייה לפני הבקשה הבאה
     }
 
-    const bool saved = agent.saveQTable(qTablePath);
-    std::cout << "Q-table save: " << (saved ? "ok" : "failed") << " (" << qTablePath << ")\n";
+    const bool saved = agent.saveQTable(qTablePath);//שמירת הטבלת קיו לקובץ לאחר סיום הריצה
+    std::cout << "Q-table save: " << (saved ? "ok" : "failed") << " (" << qTablePath << ")\n";//הדפסת תוצאה של שמירת הטבלת קיו
 }
 
-void run_conflict_check_once(const std::string& host, int port, int intersectionId) {
+void run_conflict_check_once(const std::string& host, int port, int intersectionId) {//הרצת בדיקת קונפליקט אחת בלבד עבור צומת מסוימת
     std::cout << "\n=== CONFLICT CHECK MODE (API) ===\n";
-    std::cout << "Server: " << host << ":" << port << " | intersection=" << intersectionId << "\n\n";
+    std::cout << "Server: " << host << ":" << port << " | intersection=" << intersectionId << "\n\n";//הדפסת מידע על מצב הריצה
 
-    smart_traffic::HttpClient client(host, port);
-    const std::string health = client.get("/health");
-    if (health.empty()) {
-        std::cerr << "Cannot connect to server. Run FastAPI first.\n";
-        return;
+    smart_traffic::HttpClient client(host, port);//יצירת לקוח HTTP להתחברות לשרת
+    const std::string health = client.get("/health");//בדיקת מצב השרת
+    if (health.empty()) {//אם השרת לא מגיב
+        std::cerr << "Cannot connect to server. Run FastAPI first.\n";//הדפסת שגיאה
+        return;//חזרה מהפונקציה
     }
 
-    traffic::LaneConflictConfig laneConflicts = load_lane_conflicts_from_api(client, intersectionId);
-    print_loaded_conflicts(intersectionId, laneConflicts);
-    run_conflict_enforcement_smoke_test(intersectionId, laneConflicts);
+    traffic::LaneConflictConfig laneConflicts = load_lane_conflicts_from_api(client, intersectionId);//טעינת קונפליקטים של הנתיבים עבור הצומת הנתונה מהשרת
+    print_loaded_conflicts(intersectionId, laneConflicts);// הדפסת הקונפליקטים של הנתיבים שהתקבלו מהשרת
+    run_conflict_enforcement_smoke_test(intersectionId, laneConflicts);//הרצת בדיקת קונפליקט עבור הצומת הנתונה
 }
 
 } // namespace

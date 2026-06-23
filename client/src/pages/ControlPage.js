@@ -3,6 +3,7 @@ import { IntersectionSelector } from '../components/IntersectionSelector';
 import { ManualControlPanel } from '../components/ManualControlPanel';
 import { SignalStatusPanel } from '../components/SignalStatusPanel';
 import { TrafficStatusCard } from '../components/TrafficStatusCard';
+import { IntersectionVisual } from '../components/TrafficChartPanel';
 
 export function ControlPage({
   intersections,
@@ -15,7 +16,9 @@ export function ControlPage({
   manualEmergencyEnabled,
   onSendManualControl,
   onTriggerEmergency,
-  onClearEmergency
+  onClearEmergency,
+  emergencySubmitting,
+  emergencyStatusText
 }) {
   const subtitle = selectedIntersection
     ? `${selectedIntersection.name} - ${isAdmin ? 'שליטה ידנית זמינה' : 'צפייה בלבד'}`
@@ -44,13 +47,21 @@ export function ControlPage({
 
       <TrafficStatusCard status={status} />
 
+      <div className="card" style={{ marginBottom: 16 }}>
+        <h2>ויזואליזציית צומת בזמן אמת</h2>
+        {status ? <IntersectionVisual status={status} /> : <div className="muted">אין נתוני צומת להצגה</div>}
+      </div>
+
       <div className={isAdmin ? 'dashboard-grid control-grid' : 'dashboard-grid'}>
         {isAdmin && (
           <ManualControlPanel
+            status={status}
             onSend={onSendManualControl}
             onTriggerEmergency={onTriggerEmergency}
             onClearEmergency={onClearEmergency}
             manualEmergencyEnabled={manualEmergencyEnabled}
+            emergencySubmitting={emergencySubmitting}
+            emergencyStatusText={emergencyStatusText}
           />
         )}
         <SignalStatusPanel status={status} />

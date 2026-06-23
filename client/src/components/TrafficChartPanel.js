@@ -1,20 +1,73 @@
+import { useEffect, useRef, useState } from 'react';
+
 export function IntersectionVisual({ status, compact = false }) {
   if (!status) return null;
 
-  const lanes = status.lanes || [];
-  const directions = Array.isArray(status.laneDirections) ? status.laneDirections : [];
+  const MIN_PHASE_HOLD_MS = 2200;
+
+  const lanes = Array.isArray(status.lanes) ? status.lanes : [];
+  const directions = Array.isArray(status.laneDirections)
+    ? status.laneDirections
+    : Array.isArray(status.skyDirections)
+      ? status.skyDirections
+      : [];
+  const knownTokens = ['N', 'S', 'E', 'W'];
+
+  const [displayPhase, setDisplayPhase] = useState(status.currentPhase || 'Hold');
+  const phaseSinceRef = useRef(Date.now());
+  const phaseTimerRef = useRef(null);
+
+  useEffect(() => {
+    const nextPhase = status.currentPhase || 'Hold';
+    if (nextPhase === displayPhase) return undefined;
+
+    const elapsed = Date.now() - phaseSinceRef.current;
+    const remaining = Math.max(0, MIN_PHASE_HOLD_MS - elapsed);
+
+    if (remaining === 0) {
+      setDisplayPhase(nextPhase);
+      phaseSinceRef.current = Date.now();
+      return undefined;
+    }
+
+    if (phaseTimerRef.current) {
+      window.clearTimeout(phaseTimerRef.current);
+    }
+
+    phaseTimerRef.current = window.setTimeout(() => {
+      setDisplayPhase(nextPhase);
+      phaseSinceRef.current = Date.now();
+      phaseTimerRef.current = null;
+    }, remaining);
+
+    return () => {
+      if (phaseTimerRef.current) {
+        window.clearTimeout(phaseTimerRef.current);
+        phaseTimerRef.current = null;
+      }
+    };
+  }, [status.currentPhase, displayPhase]);
+
+  const getLaneId = (lane) => {
+    const id = lane?.lane_id ?? lane?.id;
+    return Number.isFinite(Number(id)) ? Number(id) : -1;
+  };
 
   const getLaneColor = (laneId) => {
-    if (!status.currentPhase || status.currentPhase === 'Hold') {
-      return 'RED';
+    const hasServerEmergencyLane = Number.isFinite(Number(emergencyLaneFromStatus));
+    if (hasServerEmergencyLane && emergencyActive && Number(laneId) === Number(emergencyLaneFromStatus)) {
+      return '#10B981';
     }
-    const match = /^Phase(\d+)$/.exec(status.currentPhase);
+    if (!displayPhase || displayPhase === 'Hold') {
+      return '#EF4444';
+    }
+    const match = /^Phase(\d+)$/.exec(displayPhase);
     if (!match) {
-      return 'RED';
+      return '#EF4444';
     }
     const phaseId = Number(match[1]);
     const lanePhase = laneId % 2 === 0 ? 0 : 1;
-    return lanePhase === phaseId ? 'GREEN' : 'RED';
+    return lanePhase === phaseId ? '#10B981' : '#EF4444';
   };
 
   const normalizeDirection = (value, laneId) => {
@@ -24,18 +77,13 @@ export function IntersectionVisual({ status, compact = false }) {
       S: 'S', SOUTH: 'S',
       E: 'E', EAST: 'E',
       W: 'W', WEST: 'W',
-      NE: 'NE', NORTHEAST: 'NE',
-      NW: 'NW', NORTHWEST: 'NW',
-      SE: 'SE', SOUTHEAST: 'SE',
-      SW: 'SW', SOUTHWEST: 'SW'
+      NE: 'N', NORTHEAST: 'N',
+      NW: 'N', NORTHWEST: 'N',
+      SE: 'S', SOUTHEAST: 'S',
+      SW: 'S', SOUTHWEST: 'S'
     };
-
-    if (alias[raw]) {
-      return alias[raw];
-    }
-
-    // Fallback keeps a stable real intersection shape even if direction is missing.
-    return ['N', 'E', 'S', 'W'][laneId % 4];
+    if (alias[raw]) return alias[raw];
+    return knownTokens[laneId % knownTokens.length];
   };
 
   const directionLabel = (token) => {
@@ -43,259 +91,160 @@ export function IntersectionVisual({ status, compact = false }) {
     if (token === 'S') return 'דרום';
     if (token === 'E') return 'מזרח';
     if (token === 'W') return 'מערב';
-    if (token === 'NE') return 'צפון-מזרח';
-    if (token === 'NW') return 'צפון-מערב';
-    if (token === 'SE') return 'דרום-מזרח';
-    if (token === 'SW') return 'דרום-מערב';
     return token || 'נתיב';
   };
 
+  const emergencySignal = status.emergency_signal || status.state?.emergency_signal || null;
+
+  const emergencyLaneFromStatus = [
+    status.emergencyLaneId,
+    status.emergency_lane_id,
+    emergencySignal?.lane_id,
+    status.state?.emergency_signal?.lane_id,
+  ].find((value) => Number.isFinite(Number(value)));
+
+  const emergencyActive = Boolean(
+    status.emergencyActive ||
+    status.emergency_active ||
+    emergencySignal?.active ||
+    status.state?.emergency_signal?.active ||
+    status.actionSource === 'emergency_preempt'
+  );
+
   const laneDirById = {};
-  lanes.forEach((lane) => {
-    laneDirById[lane.lane_id] = normalizeDirection(directions[lane.lane_id], lane.lane_id);
+  lanes.forEach((lane, index) => {
+    const laneId = getLaneId(lane);
+    const directionFromLane = lane?.direction || lane?.lane_direction || lane?.geo_direction || lane?.cardinal_direction;
+    const fromStatusMap = status.laneDirectionById?.[laneId] || status.lane_direction_by_id?.[laneId];
+    laneDirById[laneId] = normalizeDirection(
+      directionFromLane || fromStatusMap || directions[laneId] || directions[index],
+      laneId < 0 ? index : laneId
+    );
   });
 
   const lanesByDir = lanes.reduce((acc, lane) => {
-    const key = laneDirById[lane.lane_id];
-    if (!acc[key]) {
-      acc[key] = [];
-    }
+    const laneId = getLaneId(lane);
+    const key = laneDirById[laneId];
+    if (!acc[key]) acc[key] = [];
     acc[key].push(lane);
     return acc;
   }, {});
 
-  const knownTokens = ['N', 'S', 'E', 'W', 'NE', 'NW', 'SE', 'SW'];
-  const extraTokens = Object.keys(lanesByDir).filter((t) => !knownTokens.includes(t));
+  const lanesN = lanesByDir.N || [];
+  const lanesS = lanesByDir.S || [];
+  const lanesE = lanesByDir.E || [];
+  const lanesW = lanesByDir.W || [];
+  const hasN = lanesN.length > 0;
+  const hasS = lanesS.length > 0;
+  const hasE = lanesE.length > 0;
+  const hasW = lanesW.length > 0;
 
-  const groupStyleByDir = (token) => {
-    const horizontal = token === 'N' || token === 'S' || token === 'NE' || token === 'NW' || token === 'SE' || token === 'SW';
-    return {
-      display: 'flex',
-      flexDirection: horizontal ? 'row' : 'column',
-      justifyContent: 'center',
-      alignItems: 'center',
-      flexWrap: 'wrap',
-      gap: 12,
-      width: '100%',
-      maxWidth: '100%',
-      minWidth: 0
-    };
-  };
+  const renderLane = (lane, dirToken, laneIndex, totalInDirection) => {
+    const laneId = getLaneId(lane);
+    const signalColor = getLaneColor(laneId);
+    const vehicleCount = Math.max(0, Number(lane?.vehicle_count || lane?.vehicleCount || 0));
+    const waitingSec = Math.max(0, Math.round(Number(lane?.waiting_time_sec || lane?.waitingTimeSec || 0)));
+    const carsVisualCount = Math.max(0, Math.min(3, vehicleCount));
+    const axisClass = dirToken === 'N' || dirToken === 'S' ? 'iv-lane-axis-h' : 'iv-lane-axis-v';
+    const dividerClass = laneIndex < totalInDirection - 1
+      ? (axisClass === 'iv-lane-axis-h' ? 'iv-divider-right' : 'iv-divider-bottom')
+      : '';
+    const laneLocalEmergency = Boolean(lane?.emergencyActive || lane?.emergency_active);
+    const hasServerEmergencyLane = Number.isFinite(Number(emergencyLaneFromStatus));
+    const isEmergency = hasServerEmergencyLane
+      ? Boolean(emergencyActive && Number(laneId) === Number(emergencyLaneFromStatus))
+      : Boolean(emergencyActive && laneLocalEmergency);
+    const isGreen = signalColor === '#10B981';
 
-  const laneCardStyleByDir = (token) => {
-    const common = {
-      position: 'static',
-      transform: 'none',
-      width: compact ? 'min(140px, 100%)' : 'min(220px, 100%)',
-      flex: compact ? '1 1 136px' : '1 1 210px',
-      minHeight: compact ? 240 : 280,
-      maxWidth: '100%'
-    };
-
-    if (token === 'N' || token === 'S') {
-      return {
-        ...common,
-        width: compact ? 'min(160px, 100%)' : 'min(240px, 100%)',
-        flex: compact ? '1 1 154px' : '1 1 228px'
-      };
-    }
-
-    // East/West cards need more width for text to fit
-    if (token === 'E' || token === 'W') {
-      return {
-        ...common,
-        width: compact ? 'min(140px, 100%)' : 'min(280px, 100%)',
-        flex: compact ? '1 1 136px' : '1 1 270px'
-      };
-    }
-
-    return common;
-  };
-
-  const cellStyle = {
-    minHeight: compact ? 240 : 280,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    minWidth: 0
-  };
-
-  const stageStyle = {
-    position: 'relative',
-    minHeight: 0,
-    height: 'auto',
-    overflow: 'visible',
-    display: 'grid',
-      gridTemplateColumns: compact
-      ? 'minmax(110px, 1fr) minmax(200px, 1.4fr) minmax(110px, 1fr)'
-      : 'minmax(0, 1fr) minmax(360px, 1.8fr) minmax(0, 1fr)',
-    gridTemplateRows: compact ? 'auto minmax(220px, auto) auto' : 'auto minmax(340px, auto) auto',
-    gap: compact ? 6 : 16,
-    padding: compact ? '8px 6px' : '20px 12px',
-    alignItems: 'stretch',
-    width: '100%',
-    boxSizing: 'border-box'
-  };
-
-  const renderDirectionGroup = (tokens) => {
-    const dirLanes = tokens.flatMap((token) => lanesByDir[token] || []);
-    if (dirLanes.length === 0) {
-      return null;
-    }
-    const tokenForStyle = tokens[0];
     return (
-      <div style={groupStyleByDir(tokenForStyle)}>
-        {dirLanes.map((lane) => renderLaneCard(lane, laneDirById[lane.lane_id]))}
+      <div
+        key={`lane-${dirToken}-${laneId}`}
+        className={`iv-lane iv-lane-${dirToken.toLowerCase()} ${axisClass} ${dividerClass} ${isEmergency ? 'is-emergency' : ''}`}
+      >
+        <span className="iv-lane-id">#{laneId}</span>
+        <span className="iv-lane-stats" title="נתוני YOLO בזמן אמת">
+          🚗 {vehicleCount} | ⏱️ {waitingSec}s
+        </span>
+        {carsVisualCount > 0 && (
+          <span className={`iv-lane-flow iv-lane-flow-${dirToken.toLowerCase()}`} aria-label="lane-traffic-flow">
+            {Array.from({ length: carsVisualCount }).map((_, i) => (
+              <span
+                key={`car-${laneId}-${i}`}
+                className={`iv-car-icon ${isGreen ? 'is-moving' : 'is-stopped'}`}
+                style={isGreen ? { animationDelay: `${i * 0.35}s` } : undefined}
+              >
+                🚘
+              </span>
+            ))}
+          </span>
+        )}
+        <span className="iv-signal-shell">
+          <span className="iv-signal-light" style={{ backgroundColor: signalColor, boxShadow: `0 0 14px ${signalColor}AA` }} />
+          {isEmergency && <span className="iv-emergency-beacon" aria-label="emergency-lane-beacon" />}
+        </span>
+        {isEmergency && (
+          <span className="iv-emergency-overlay" aria-label="emergency-lane-overlay">
+            <span className="iv-emergency-overlay-icon">🚨</span>
+            <span className="iv-emergency-overlay-text">🚑 רכב חירום</span>
+          </span>
+        )}
       </div>
     );
   };
 
-  const renderLaneCard = (lane, dirToken) => {
-    const signalColor = getLaneColor(lane.lane_id);
-    const vehicleTotal = Math.max(0, Number(lane.vehicle_count || 0));
-    const laneEmergencyActive = Boolean(status.emergencyActive) && Number(status.emergencyLaneId) === Number(lane.lane_id);
-    const isGreen = signalColor === 'GREEN';
-
-    const movementByDir = {
-      N: 'down',
-      S: 'up',
-      E: 'left',
-      W: 'right',
-      NE: 'down',
-      NW: 'down',
-      SE: 'up',
-      SW: 'up'
-    };
-
-    const roadOrientationByDir = {
-      N: 'vertical',
-      S: 'vertical',
-      E: 'horizontal',
-      W: 'horizontal',
-      NE: 'vertical',
-      NW: 'vertical',
-      SE: 'vertical',
-      SW: 'vertical'
-    };
-
-    const movement = movementByDir[dirToken] || 'down';
-    const roadOrientation = roadOrientationByDir[dirToken] || 'horizontal';
-
-    const carsToRender = Math.min(10, vehicleTotal);
-    const animationDuration = Math.max(1.6, 4.4 - Math.min(vehicleTotal, 16) * 0.14);
-    const laneWaitSec = Math.round(Number(lane.waiting_time_sec || 0));
-    const roadTone = laneEmergencyActive ? 'road-emergency' : isGreen ? 'road-green' : 'road-red';
-
-    const animationNameByMove = {
-      right: isGreen ? 'driveThrough' : 'stopAtLight',
-      left: isGreen ? 'driveThroughLeft' : 'stopAtLightLeft',
-      down: isGreen ? 'driveThroughVertical' : 'stopAtLightVertical',
-      up: isGreen ? 'driveThroughVerticalUp' : 'stopAtLightVerticalUp'
-    };
-
-    const animationName = animationNameByMove[movement] || (isGreen ? 'driveThrough' : 'stopAtLight');
-
-    const renderVehicle = (index) => (
-      <span
-        key={`car-${lane.lane_id}-${index}`}
-        className={[
-          'emoji-car',
-          `emoji-car--${roadOrientation}`,
-          `emoji-car--${movement}`,
-          isGreen ? 'emoji-car--green' : 'emoji-car--red'
-        ].join(' ')}
-        style={{
-          '--car-delay': `${(index * animationDuration) / Math.max(1, carsToRender)}s`,
-          '--car-duration': `${animationDuration}s`,
-          '--stop-distance': `${Math.max(26, 78 - index * 8)}px`,
-          '--drive-distance': `${roadOrientation === 'horizontal' ? 170 : 120}px`,
-          animation: isGreen
-            ? `${animationName} var(--car-duration) linear var(--car-delay) infinite`
-            : `${animationName} calc(var(--car-duration) * 0.72) ease-out var(--car-delay) forwards`
-        }}
-      >
-        {index % 2 === 0 ? '🚗' : '🚙'}
-      </span>
-    );
+  const renderRoad = (dirToken) => {
+    const dirLanes = lanesByDir[dirToken] || [];
+    const isHorizontal = dirToken === 'N' || dirToken === 'S';
+    const dynamicGridStyle = dirLanes.length > 0
+      ? {
+          gridTemplateColumns: isHorizontal ? `repeat(${dirLanes.length}, minmax(0, 1fr))` : undefined,
+          gridTemplateRows: !isHorizontal ? `repeat(${dirLanes.length}, minmax(0, 1fr))` : undefined,
+        }
+      : undefined;
 
     return (
-      <div
-        key={lane.lane_id}
-        className="intersection-lane"
-        style={{
-          ...laneCardStyleByDir(dirToken),
-          borderColor: laneEmergencyActive ? '#dc2626' : undefined,
-          boxShadow: laneEmergencyActive ? '0 0 0 2px rgba(220, 38, 38, 0.2)' : undefined,
-          background: laneEmergencyActive ? '#fff7f7' : undefined,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '8px'
-        }}
-      >
-        <div className="lane-header">
-          <span className={`lane-signal ${signalColor === 'GREEN' ? 'green' : 'red'}`} />
-          <strong>{directionLabel(dirToken)}</strong>
-          <span className="lane-live-badge">LIVE</span>
+      <div className={`iv-road iv-road-${dirToken.toLowerCase()}`}>
+        <span className="iv-road-centerline" />
+        <span className="iv-road-dashed iv-road-dashed-a" />
+        <span className="iv-road-dashed iv-road-dashed-b" />
+
+        <div className={`iv-lanes iv-lanes-${dirToken.toLowerCase()}`} style={dynamicGridStyle}>
+          {dirLanes.map((lane, laneIndex) => renderLane(lane, dirToken, laneIndex, dirLanes.length))}
         </div>
 
-        {laneEmergencyActive && !compact && (
-          <div className="badge badge-danger" style={{ margin: '0 0 4px 0', padding: '3px 6px', fontSize: '10px' }}>
-            חירום פעיל
-          </div>
-        )}
-
-        <div className={`lane-meta ${compact ? 'lane-meta--compact' : ''}`}>
-          <span className="lane-meta-item">🚗 {lane.vehicle_count}</span>
-          <span className="lane-meta-item">⏱️ {laneWaitSec}s</span>
-          <span className="lane-meta-item">🛣️ {lane.lane_id}</span>
-        </div>
-
-        <div className={`lane-road lane-road--${roadOrientation} ${roadTone}`} aria-label={`lane-${lane.lane_id}-sim`} style={{ flex: '1 1 auto', minHeight: compact ? 60 : 80 }}>
-          <span className="lane-road-surface" />
-          <span className="lane-divider lane-divider--primary" />
-          <span className="lane-divider lane-divider--secondary" />
-          <span className={`lane-stopline ${isGreen ? 'go' : 'stop'}`} />
-          <span className="lane-intersection-glow" />
-
-          {Array.from({ length: carsToRender }).map((_, index) => renderVehicle(index))}
-        </div>
+        {!compact && <span className="iv-dir-label">{directionLabel(dirToken)}</span>}
       </div>
     );
   };
 
   return (
-    <div className="intersection-stage" style={stageStyle}>
-      <div style={cellStyle}>{renderDirectionGroup(['NW'])}</div>
-      <div style={cellStyle}>{renderDirectionGroup(['N'])}</div>
-      <div style={cellStyle}>{renderDirectionGroup(['NE'])}</div>
+    <div className={`iv-stage ${compact ? 'iv-stage-compact' : ''}`}>
+      <div
+        className="iv-grid"
+        style={{
+          gridTemplateColumns: `${hasW ? '1fr' : '0fr'} minmax(170px, 1.45fr) ${hasE ? '1fr' : '0fr'}`,
+          gridTemplateRows: `${hasN ? '1fr' : '0fr'} minmax(170px, 1.45fr) ${hasS ? '1fr' : '0fr'}`,
+        }}
+      >
+        {hasN && <div className="iv-cell iv-north">{renderRoad('N')}</div>}
+        {hasW && <div className="iv-cell iv-west">{renderRoad('W')}</div>}
 
-      <div style={cellStyle}>{renderDirectionGroup(['W'])}</div>
-      <div style={{ ...cellStyle, minHeight: compact ? 220 : 340 }}>
-        <div
-          className="intersection-cross"
-          style={{
-            position: 'static',
-            transform: 'none',
-            inset: 'auto',
-            width: '100%',
-            maxWidth: compact ? 200 : 450,
-            height: compact ? 220 : 340
-          }}
-        />
+        <div className="iv-core" aria-label="intersection-core">
+          <span className="iv-core-lane-mark iv-core-mark-v" />
+          <span className="iv-core-lane-mark iv-core-mark-h" />
+        </div>
+
+        {hasE && <div className="iv-cell iv-east">{renderRoad('E')}</div>}
+        {hasS && <div className="iv-cell iv-south">{renderRoad('S')}</div>}
       </div>
-      <div style={cellStyle}>{renderDirectionGroup(['E'])}</div>
 
-      <div style={cellStyle}>{renderDirectionGroup(['SW'])}</div>
-      <div style={cellStyle}>{renderDirectionGroup(['S'])}</div>
-      <div style={cellStyle}>{renderDirectionGroup(['SE'])}</div>
-
-      {extraTokens.length > 0 && (
-        <div style={{ gridColumn: '1 / -1', ...cellStyle, minHeight: compact ? 42 : 64 }}>
-          {renderDirectionGroup(extraTokens)}
+      {lanes.length > 0 && (
+        <div className="iv-legend">
+          <span>🚗 {lanes.reduce((sum, lane) => sum + Math.max(0, Number(lane.vehicle_count || lane.vehicleCount || 0)), 0)}</span>
+          <span>⏱️ {Math.round(lanes.reduce((sum, lane) => sum + Number(lane.waiting_time_sec || lane.waitingTimeSec || 0), 0))}s</span>
+          {emergencyActive && <span className="iv-legend-emergency">מצב חירום פעיל</span>}
         </div>
       )}
-
     </div>
   );
 }

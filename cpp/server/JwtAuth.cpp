@@ -199,15 +199,17 @@ bool verify_admin_password(const std::string& username, const std::string& passw
     return ok;
 }
 
-AdminTokenResponse create_admin_token(const std::string& username) {
+AdminTokenResponse create_admin_token(const std::string& username, const std::string& role) {
     json header = {
         {"alg", "HS256"},
         {"typ", "JWT"},
     };
     long long iat = now_epoch_seconds();
     long long exp = iat + static_cast<long long>(ADMIN_JWT_EXPIRATION_MINUTES) * 60LL;
+    const std::string safe_role = (role == "super_admin") ? "super_admin" : "regular_admin";
     json payload = {
         {"sub", username},
+        {"role", safe_role},
         {"iat", iat},
         {"exp", exp},
     };
@@ -251,6 +253,36 @@ bool validate_admin_token(const std::string& token, std::string& username_out) {
     if (payload["exp"].get<long long>() < now_epoch_seconds()) return false;
 
     username_out = payload["sub"].get<std::string>();
+    return true;
+}
+
+bool validate_admin_token_with_role(const std::string& token, std::string& username_out, std::string& role_out) {
+    const size_t first_dot = token.find('.');
+    const size_t second_dot = token.find('.', first_dot == std::string::npos ? first_dot : first_dot + 1);
+    if (first_dot == std::string::npos || second_dot == std::string::npos) return false;
+
+    const std::string header_part = token.substr(0, first_dot);
+    const std::string payload_part = token.substr(first_dot + 1, second_dot - first_dot - 1);
+    const std::string sig_part = token.substr(second_dot + 1);
+
+    if (sign_hs256(header_part + "." + payload_part) != sig_part) return false;
+
+    auto payload_bytes = base64url_decode(payload_part);
+    if (!payload_bytes) return false;
+
+    json payload;
+    try {
+        payload = json::parse(std::string(payload_bytes->begin(), payload_bytes->end()));
+    } catch (...) {
+        return false;
+    }
+
+    if (!payload.contains("sub") || !payload["sub"].is_string()) return false;
+    if (!payload.contains("exp") || !payload["exp"].is_number()) return false;
+    if (payload["exp"].get<long long>() < now_epoch_seconds()) return false;
+
+    username_out = payload["sub"].get<std::string>();
+    role_out = payload.value("role", "regular_admin");
     return true;
 }
 

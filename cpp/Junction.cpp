@@ -1,6 +1,7 @@
 #include "Junction.h"
 
 #include <algorithm>
+#include <cmath>
 #include <iostream>
 
 namespace traffic {
@@ -40,6 +41,11 @@ void Junction::updateLaneObservation(int laneId, int exactVehicleCount, bool eme
     lanes_[idx].vehicleCount = std::max(0, exactVehicleCount);
     lanes_[idx].densityPct = std::clamp(densityPct, 0.0, 100.0);
     lanes_[idx].hasEmergencyVehicle = emergencyOnLane;
+
+    // Empty lanes should not accumulate starvation history.
+    if (lanes_[idx].vehicleCount == 0) {
+        lanes_[idx].waitingTimeSec = 0.0;
+    }
 }
 
 JunctionState Junction::currentState() const {
@@ -116,7 +122,9 @@ bool Junction::applyPhase(int phaseId, double nowSec) {
 
 void Junction::tick(double deltaSec) {
     for (auto& lane : lanes_) {
-        if (isLaneGreen(lane.id)) {
+        if (lane.vehicleCount <= 0) {
+            lane.waitingTimeSec = 0.0;
+        } else if (isLaneGreen(lane.id)) {
             lane.waitingTimeSec = 0.0;
         } else {
             lane.waitingTimeSec += deltaSec;
@@ -133,11 +141,44 @@ std::optional<int> Junction::resolveEmergencyPhase() const {
     if (!emergencyActive_ || !emergencyLaneId_.has_value()) return std::nullopt;
 
     const int targetLane = *emergencyLaneId_;
+    bool found = false;
+    std::size_t bestGreenCount = 0;
+    int bestTotalQueued = -1;
+    double bestTotalWaiting = -1.0;
+    int bestPhaseId = -1;
+
     for (const auto& phase : validPhases_) {
-        if (std::find(phase.greenLanes.begin(), phase.greenLanes.end(), targetLane) != phase.greenLanes.end()) {
-            if (isPhaseValid(phase)) return phase.phaseId;
+        if (std::find(phase.greenLanes.begin(), phase.greenLanes.end(), targetLane) == phase.greenLanes.end()) continue;
+        if (!isPhaseValid(phase)) continue;
+
+        const std::size_t greenCount = phase.greenLanes.size();
+        int totalQueued = 0;
+        double totalWaiting = 0.0;
+        for (int laneId : phase.greenLanes) {
+            const int idx = laneIndexById(laneId);
+            if (idx < 0) continue;
+            totalQueued += std::max(0, lanes_[idx].vehicleCount);
+            totalWaiting += std::max(0.0, lanes_[idx].waitingTimeSec);
+        }
+
+        const bool better =
+            (!found) ||
+            (greenCount > bestGreenCount) ||
+            (greenCount == bestGreenCount && totalQueued > bestTotalQueued) ||
+            (greenCount == bestGreenCount && totalQueued == bestTotalQueued && totalWaiting > bestTotalWaiting) ||
+            (greenCount == bestGreenCount && totalQueued == bestTotalQueued &&
+                std::abs(totalWaiting - bestTotalWaiting) < 1e-9 && phase.phaseId < bestPhaseId);
+
+        if (better) {
+            found = true;
+            bestGreenCount = greenCount;
+            bestTotalQueued = totalQueued;
+            bestTotalWaiting = totalWaiting;
+            bestPhaseId = phase.phaseId;
         }
     }
+
+    if (found) return bestPhaseId;
     return std::nullopt;
 }
 

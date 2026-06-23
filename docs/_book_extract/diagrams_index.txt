@@ -1,0 +1,64 @@
+﻿== Drawing relationships ==
+Drawing#1: rId8 -> media/image1.png
+Drawing#2: rId9 -> media/image2.png
+Drawing#3: rId10 -> media/image3.png
+Drawing#4: rId11 -> media/image4.png
+Drawing#5: rId12 -> media/image5.png
+Drawing#6: rId13 -> media/image6.png
+Drawing#7: rId14 -> media/image7.png
+Drawing#8: rId15 -> media/image8.png
+Drawing#9: rId16 -> media/image9.png
+Drawing#10: rId17 -> media/image10.png
+Drawing#11: rId18 -> media/image11.png
+Drawing#12: rId19 -> media/image12.png
+Drawing#13: rId20 -> media/image13.png
+Drawing#14: rId21 -> media/image14.png
+Drawing#15: rId22 -> media/image15.png
+Drawing#16: rId23 -> media/image16.png
+Drawing#17: rId24 -> media/image17.png
+Drawing#18: rId25 -> media/image18.png
+Drawing#19: rId26 -> media/image19.png
+Drawing#20: rId27 -> media/image20.png
+Drawing#21: rId28 -> media/image21.png
+Drawing#22: rId29 -> media/image22.png
+Drawing#23: rId30 -> media/image23.png
+Drawing#24: rId31 -> media/image24.png
+Drawing#25: rId32 -> media/image25.png
+Drawing#26: rId33 -> media/image26.png
+Drawing#27: rId34 -> media/image27.png
+Drawing#28: rId35 -> media/image28.png
+Drawing#29: rId36 -> media/image29.png
+Drawing#30: rId37 -> media/image30.png
+
+== Media files ==
+image1.png
+image10.png
+image11.png
+image12.png
+image13.png
+image14.png
+image15.png
+image16.png
+image17.png
+image18.png
+image19.png
+image2.png
+image20.png
+image21.png
+image22.png
+image23.png
+image24.png
+image25.png
+image26.png
+image27.png
+image28.png
+image29.png
+image3.png
+image30.png
+image31.png
+image4.png
+image5.png
+image6.png
+image7.png
+image8.png
+image9.png

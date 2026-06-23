@@ -1,9 +1,0 @@
-{
-	"InstallScripts" : 
-	[
-		"C:/Users/User/Desktop/smart traffic project/cpp/build/cmake_install.cmake",
-		"C:/Users/User/Desktop/smart traffic project/cpp/build/_deps/httplib-build/cmake_install.cmake",
-		"C:/Users/User/Desktop/smart traffic project/cpp/build/_deps/nlohmann_json-build/cmake_install.cmake"
-	],
-	"Parallel" : false
-}

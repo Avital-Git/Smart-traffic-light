@@ -6,6 +6,7 @@
 #include "ConflictConfig.h"
 #include "NeighborCoordConfig.h"
 #include "PhaseConfig.h"
+#include "server/RuntimeConfig.h"
 #include "ThresholdConfig.h"
 
 #include <algorithm>
@@ -158,7 +159,17 @@ SimMetrics run_single_simulation(
     }
 
     const traffic::LaneConflictConfig laneConflicts = traffic::loadLaneConflictConfigForIntersection(1);
-    traffic::Junction junction(1, lanes, phases, 5.0, 30.0, laneConflicts.conflictPairs);
+    const traffic::RuntimeConfig runtimeConfig = traffic::loadRuntimeConfig();
+    traffic::Junction junction(
+        1,
+        lanes,
+        phases,
+        runtimeConfig.junction.minGreenSec,
+        runtimeConfig.junction.maxGreenSec,
+        laneConflicts.conflictPairs,
+        runtimeConfig.junction.yellowSec,
+        runtimeConfig.junction.allRedSec
+    );
     
     // Strategy Pattern: בחר את הבקר המתאים
     std::shared_ptr<traffic::RLAgent> rlAgent;
@@ -166,7 +177,7 @@ SimMetrics run_single_simulation(
     
     if (useRlPolicy) {
         const traffic::TrafficThresholdConfig thresholds = traffic::loadTrafficThresholdConfigForIntersection(1);
-        rlAgent = std::make_shared<traffic::RLAgent>(traffic::RLConfig{}, thresholds, neighborConfig);
+        rlAgent = std::make_shared<traffic::RLAgent>(runtimeConfig.rl, thresholds, neighborConfig);
         const std::uint32_t modeSalt = useNeighborCoordination ? 0x9E3779B9u : 0x85EBCA6Bu;
         rlAgent->setRandomSeed(seed ^ modeSalt);
         controller = std::make_shared<traffic::RLController>(rlAgent);
@@ -241,30 +252,32 @@ SimMetrics run_single_simulation(
         waitingIntegral += std::accumulate(nextState.waitingTimes.begin(), nextState.waitingTimes.end(), 0.0);
 
         if (useRlPolicy && rlAgent) {
-            bool emergencyLaneGotGreen = false;
-            if (prevState.emergencyVehicleActive && prevState.emergencyLaneId.has_value()) {
-                emergencyLaneGotGreen = phase_contains_lane(phases, appliedPhase, *prevState.emergencyLaneId);
+            if (!prevState.emergencyVehicleActive && !nextState.emergencyVehicleActive) {
+                bool emergencyLaneGotGreen = false;
+                if (prevState.emergencyVehicleActive && prevState.emergencyLaneId.has_value()) {
+                    emergencyLaneGotGreen = phase_contains_lane(phases, appliedPhase, *prevState.emergencyLaneId);
+                }
+
+                bool greenSyncedWithNeighbor = false;
+                bool greenOppositeToNeighbor = false;
+                if (useNeighborCoordination) {
+                    greenSyncedWithNeighbor = has_busy_synced_neighbor(prevState, appliedPhase, rlAgent->thresholdConfig());
+                    greenOppositeToNeighbor = has_busy_opposing_neighbor(prevState, appliedPhase, rlAgent->thresholdConfig());
+                }
+
+                const double reward = rlAgent->computeReward(
+                    prevState,
+                    nextState,
+                    appliedPhase,
+                    emergencyLaneGotGreen,
+                    greenSyncedWithNeighbor,
+                    greenOppositeToNeighbor,
+                    stepSec
+                );
+
+                rlAgent->update(prevState, appliedPhase, reward, nextState, junction.validPhases());
+                rlAgent->decayExploration();
             }
-
-            bool greenSyncedWithNeighbor = false;
-            bool greenOppositeToNeighbor = false;
-            if (useNeighborCoordination) {
-                greenSyncedWithNeighbor = has_busy_synced_neighbor(prevState, appliedPhase, rlAgent->thresholdConfig());
-                greenOppositeToNeighbor = has_busy_opposing_neighbor(prevState, appliedPhase, rlAgent->thresholdConfig());
-            }
-
-            const double reward = rlAgent->computeReward(
-                prevState,
-                nextState,
-                appliedPhase,
-                emergencyLaneGotGreen,
-                greenSyncedWithNeighbor,
-                greenOppositeToNeighbor,
-                stepSec
-            );
-
-            rlAgent->update(prevState, appliedPhase, reward, nextState, junction.validPhases());
-            rlAgent->decayExploration();
         }
     }
 

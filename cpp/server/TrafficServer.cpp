@@ -366,11 +366,16 @@ void TrafficServer::register_routes()
             return;
         }
 
-        const auto token = jwt_auth::create_admin_token(username);
+        std::string user_role = "regular_admin";
+        std::string role_error;
+        db_get_admin_role(username, user_role, role_error);
+
+        const auto token = jwt_auth::create_admin_token(username, user_role);
         res.set_content(json({
             {"access_token", token.access_token},
             {"token_type", token.token_type},
             {"expires_in", token.expires_in},
+            {"role", user_role},
         }).dump(), "application/json");
     });
 
@@ -416,6 +421,7 @@ void TrafficServer::register_routes()
             items.push_back({
                 {"user_id", user.user_id},
                 {"username", user.username},
+                {"role", user.role.empty() ? "regular_admin" : user.role},
                 {"created_at", user.created_at.empty() ? json(nullptr) : json(user.created_at)},
                 {"last_login", user.last_login.empty() ? json(nullptr) : json(user.last_login)},
             });
@@ -430,6 +436,26 @@ void TrafficServer::register_routes()
 
     // ── POST /admin/users ───────────────────────────────────────────────────
     svr_->Post("/admin/users", [validate_username, validate_password](const httplib::Request& req, httplib::Response& res) {
+        // Check if current user is super_admin
+        const auto token = jwt_auth::extract_bearer_token(req.get_header_value("Authorization"));
+        if (!token) {
+            res.status = 401;
+            res.set_content(json({{"detail", "Missing authorization token"}}).dump(), "application/json");
+            return;
+        }
+        std::string current_username;
+        std::string current_role;
+        if (!jwt_auth::validate_admin_token_with_role(*token, current_username, current_role)) {
+            res.status = 401;
+            res.set_content(json({{"detail", "Invalid authorization token"}}).dump(), "application/json");
+            return;
+        }
+        if (current_role != "super_admin") {
+            res.status = 403;
+            res.set_content(json({{"detail", "Only super_admin can create users"}}).dump(), "application/json");
+            return;
+        }
+
         json body;
         try {
             body = json::parse(req.body);
@@ -492,10 +518,24 @@ void TrafficServer::register_routes()
     // ── DELETE /admin/users/{user_id} ───────────────────────────────────────
     svr_->Delete(R"(/admin/users/(\d+))", [extract_current_admin_username](const httplib::Request& req, httplib::Response& res) {
         const int user_id = std::stoi(req.matches[1]);
-        const auto current_username = extract_current_admin_username(req);
-        if (!current_username) {
+        
+        // Check if current user is super_admin
+        const auto token = jwt_auth::extract_bearer_token(req.get_header_value("Authorization"));
+        if (!token) {
             res.status = 401;
-            res.set_content(json({{"detail", "Invalid token"}}).dump(), "application/json");
+            res.set_content(json({{"detail", "Missing authorization token"}}).dump(), "application/json");
+            return;
+        }
+        std::string current_username;
+        std::string current_role;
+        if (!jwt_auth::validate_admin_token_with_role(*token, current_username, current_role)) {
+            res.status = 401;
+            res.set_content(json({{"detail", "Invalid authorization token"}}).dump(), "application/json");
+            return;
+        }
+        if (current_role != "super_admin") {
+            res.status = 403;
+            res.set_content(json({{"detail", "Only super_admin can delete users"}}).dump(), "application/json");
             return;
         }
 
@@ -513,7 +553,7 @@ void TrafficServer::register_routes()
             return;
         }
 
-        if (target_username == *current_username) {
+        if (target_username == current_username) {
             res.status = 400;
             res.set_content(json({{"detail", "Cannot delete yourself"}}).dump(), "application/json");
             return;
@@ -553,6 +593,34 @@ void TrafficServer::register_routes()
     // ── PUT /admin/users/{user_id}/password ─────────────────────────────────
     svr_->Put(R"(/admin/users/(\d+)/password)", [validate_password](const httplib::Request& req, httplib::Response& res) {
         const int user_id = std::stoi(req.matches[1]);
+
+        // Role check: regular_admin can only change their own password
+        {
+            const auto tok = jwt_auth::extract_bearer_token(req.get_header_value("Authorization"));
+            if (!tok) {
+                res.status = 401;
+                res.set_content(json({{"detail", "Missing authorization token"}}).dump(), "application/json");
+                return;
+            }
+            std::string cur_user;
+            std::string cur_role;
+            if (!jwt_auth::validate_admin_token_with_role(*tok, cur_user, cur_role)) {
+                res.status = 401;
+                res.set_content(json({{"detail", "Invalid authorization token"}}).dump(), "application/json");
+                return;
+            }
+            if (cur_role != "super_admin") {
+                std::string target_user;
+                bool target_found = false;
+                std::string target_error;
+                db_get_admin_username_by_id(user_id, target_user, target_found, target_error);
+                if (!target_found || target_user != cur_user) {
+                    res.status = 403;
+                    res.set_content(json({{"detail", "Regular admin can only change their own password"}}).dump(), "application/json");
+                    return;
+                }
+            }
+        }
 
         json body;
         try {
@@ -822,7 +890,7 @@ void TrafficServer::register_routes()
                             {"queue_length",     0},
                             {"density_pct",      0.0},
                             {"waiting_time_sec", 0.0},
-                            {"pedestrian_count", 0},
+                            //{"pedestrian_count", 0},
                         };
                         normalized_lanes.push_back(std::move(zero_lane));
                     }
@@ -1268,7 +1336,7 @@ void TrafficServer::register_routes()
                     {"queue_length",     0},
                     {"density_pct",      0.0},
                     {"waiting_time_sec", 0.0},
-                    {"pedestrian_count", 0},
+                    //{"pedestrian_count", 0},
                 });
             }
             zero_state["lanes"] = std::move(lanes);
@@ -1402,10 +1470,12 @@ void TrafficServer::register_routes()
         // pre_routing_handler already validated the token if we reach here.
         const auto token = jwt_auth::extract_bearer_token(req.get_header_value("Authorization"));
         std::string username;
-        if (token) jwt_auth::validate_admin_token(*token, username);
+        std::string role = "regular_admin";
+        if (token) jwt_auth::validate_admin_token_with_role(*token, username, role);
         res.set_content(json({
             {"status",   "ok"},
             {"username", username},
+            {"role",     role},
             {"message",  "Token is valid"},
         }).dump(), "application/json");
     });

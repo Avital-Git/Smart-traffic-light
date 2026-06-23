@@ -132,18 +132,6 @@ static void close_sql_connection(SQLHENV env, SQLHDBC dbc)
     }
 }
 
-static std::string stmt_sql_state(SQLHSTMT stmt)
-{
-    SQLCHAR state[6] = {0};
-    SQLINTEGER native_err = 0;
-    SQLCHAR msg[256] = {0};
-    SQLSMALLINT msg_len = 0;
-    if (SQLGetDiagRecA(SQL_HANDLE_STMT, stmt, 1, state, &native_err, msg, sizeof(msg), &msg_len) == SQL_SUCCESS) {
-        return std::string(reinterpret_cast<char*>(state));
-    }
-    return "";
-}
-
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -942,7 +930,7 @@ bool db_delete_conflict(
 }
 
 // ---------------------------------------------------------------------------
-// Admin users
+// Admin Users
 // ---------------------------------------------------------------------------
 
 std::vector<AdminUserRow> db_list_admin_users()
@@ -962,7 +950,7 @@ std::vector<AdminUserRow> db_list_admin_users()
     }
 
     const char* sql =
-        "SELECT user_id, username, created_at, last_login "
+        "SELECT user_id, username, ISNULL(role, 'regular_admin') AS role, created_at, last_login "
         "FROM dbo.admin_users "
         "ORDER BY user_id";
 
@@ -971,6 +959,7 @@ std::vector<AdminUserRow> db_list_admin_users()
         SQLINTEGER iv = 0;
         SQLLEN il = 0;
         WCHAR wbuf[512] = {};
+
         while (SQLFetch(stmt) == SQL_SUCCESS) {
             AdminUserRow row;
 
@@ -981,9 +970,12 @@ std::vector<AdminUserRow> db_list_admin_users()
             row.username = (il != SQL_NULL_DATA) ? wstr_to_utf8(wbuf, il) : "";
 
             SQLGetData(stmt, 3, SQL_C_WCHAR, wbuf, sizeof(wbuf), &il);
-            row.created_at = (il != SQL_NULL_DATA) ? wstr_to_utf8(wbuf, il) : "";
+            row.role = (il != SQL_NULL_DATA) ? wstr_to_utf8(wbuf, il) : "regular_admin";
 
             SQLGetData(stmt, 4, SQL_C_WCHAR, wbuf, sizeof(wbuf), &il);
+            row.created_at = (il != SQL_NULL_DATA) ? wstr_to_utf8(wbuf, il) : "";
+
+            SQLGetData(stmt, 5, SQL_C_WCHAR, wbuf, sizeof(wbuf), &il);
             row.last_login = (il != SQL_NULL_DATA) ? wstr_to_utf8(wbuf, il) : "";
 
             rows.push_back(row);
@@ -1047,9 +1039,9 @@ bool db_touch_admin_last_login(const std::string& username)
     SQLHENV env = SQL_NULL_HENV;
     SQLHDBC dbc = SQL_NULL_HDBC;
     SQLHSTMT stmt = SQL_NULL_HSTMT;
-    std::string error;
+    std::string error_out;
 
-    if (!open_sql_connection(env, dbc, &error)) return false;
+    if (!open_sql_connection(env, dbc, &error_out)) return false;
     if (SQLAllocHandle(SQL_HANDLE_STMT, dbc, &stmt) != SQL_SUCCESS) {
         close_sql_connection(env, dbc);
         return false;
@@ -1057,7 +1049,7 @@ bool db_touch_admin_last_login(const std::string& username)
 
     const char* sql =
         "UPDATE dbo.admin_users "
-        "SET last_login = GETDATE() "
+        "SET last_login = SYSUTCDATETIME() "
         "WHERE username = ?";
     SQLPrepareA(stmt, reinterpret_cast<SQLCHAR*>(const_cast<char*>(sql)), SQL_NTS);
 
@@ -1066,14 +1058,15 @@ bool db_touch_admin_last_login(const std::string& username)
                      (SQLPOINTER)username.c_str(), 0, &username_ind);
 
     const SQLRETURN rc = SQLExecute(stmt);
-    const bool ok = (rc == SQL_SUCCESS || rc == SQL_SUCCESS_WITH_INFO);
-
-    if (ok) {
-        SQLEndTran(SQL_HANDLE_DBC, dbc, SQL_COMMIT);
-    }
     SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+    if (rc == SQL_SUCCESS || rc == SQL_SUCCESS_WITH_INFO) {
+        SQLEndTran(SQL_HANDLE_DBC, dbc, SQL_COMMIT);
+        close_sql_connection(env, dbc);
+        return true;
+    }
+
     close_sql_connection(env, dbc);
-    return ok;
+    return false;
 }
 
 bool db_insert_admin_user(
@@ -1082,55 +1075,82 @@ bool db_insert_admin_user(
     const std::string& salt,
     int& user_id_out,
     bool& duplicate_username_out,
-    std::string& error_out)
+    std::string& error_out,
+    const std::string& role)
 {
     user_id_out = 0;
     duplicate_username_out = false;
 
     SQLHENV env = SQL_NULL_HENV;
     SQLHDBC dbc = SQL_NULL_HDBC;
-    SQLHSTMT stmt = SQL_NULL_HSTMT;
     if (!open_sql_connection(env, dbc, &error_out)) return false;
+
+    // Duplicate check by username.
+    {
+        SQLHSTMT stmt = SQL_NULL_HSTMT;
+        if (SQLAllocHandle(SQL_HANDLE_STMT, dbc, &stmt) != SQL_SUCCESS) {
+            error_out = "SQLAllocHandle(SQL_HANDLE_STMT) failed";
+            close_sql_connection(env, dbc);
+            return false;
+        }
+
+        const char* sql = "SELECT user_id FROM dbo.admin_users WHERE username = ?";
+        SQLPrepareA(stmt, reinterpret_cast<SQLCHAR*>(const_cast<char*>(sql)), SQL_NTS);
+
+        SQLLEN username_ind = SQL_NTS;
+        SQLBindParameter(stmt, 1, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, 50, 0,
+                         (SQLPOINTER)username.c_str(), 0, &username_ind);
+
+        if (SQLExecute(stmt) == SQL_SUCCESS && SQLFetch(stmt) == SQL_SUCCESS) {
+            duplicate_username_out = true;
+            SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+            close_sql_connection(env, dbc);
+            return false;
+        }
+        SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+    }
+
+    SQLHSTMT stmt = SQL_NULL_HSTMT;
     if (SQLAllocHandle(SQL_HANDLE_STMT, dbc, &stmt) != SQL_SUCCESS) {
         error_out = "SQLAllocHandle(SQL_HANDLE_STMT) failed";
         close_sql_connection(env, dbc);
         return false;
     }
 
+    const std::string safe_role = (role == "super_admin") ? "super_admin" : "regular_admin";
     const char* sql =
-        "INSERT INTO dbo.admin_users (username, password_hash, salt) "
-        "VALUES (?, ?, ?)";
+        "INSERT INTO dbo.admin_users (username, password_hash, salt, role) "
+        "VALUES (?, ?, ?, ?)";
     SQLPrepareA(stmt, reinterpret_cast<SQLCHAR*>(const_cast<char*>(sql)), SQL_NTS);
 
     SQLLEN username_ind = SQL_NTS;
     SQLLEN hash_ind = SQL_NTS;
     SQLLEN salt_ind = SQL_NTS;
+    SQLLEN role_ind = SQL_NTS;
     SQLBindParameter(stmt, 1, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, 50, 0,
                      (SQLPOINTER)username.c_str(), 0, &username_ind);
     SQLBindParameter(stmt, 2, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, 64, 0,
                      (SQLPOINTER)password_hash.c_str(), 0, &hash_ind);
     SQLBindParameter(stmt, 3, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, 32, 0,
                      (SQLPOINTER)salt.c_str(), 0, &salt_ind);
+    SQLBindParameter(stmt, 4, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, 20, 0,
+                     (SQLPOINTER)safe_role.c_str(), 0, &role_ind);
 
     SQLRETURN rc = SQLExecute(stmt);
     if (!(rc == SQL_SUCCESS || rc == SQL_SUCCESS_WITH_INFO)) {
-        if (stmt_sql_state(stmt) == "23000") {
-            duplicate_username_out = true;
-        } else {
-            error_out = "INSERT into dbo.admin_users failed";
-        }
+        error_out = "INSERT into dbo.admin_users failed";
         SQLFreeHandle(SQL_HANDLE_STMT, stmt);
         close_sql_connection(env, dbc);
         return false;
     }
     SQLFreeHandle(SQL_HANDLE_STMT, stmt);
 
-    // Read generated id by unique username.
     if (SQLAllocHandle(SQL_HANDLE_STMT, dbc, &stmt) != SQL_SUCCESS) {
         error_out = "SQLAllocHandle(SQL_HANDLE_STMT) failed";
         close_sql_connection(env, dbc);
         return false;
     }
+
     const char* sql_get = "SELECT user_id FROM dbo.admin_users WHERE username = ?";
     SQLPrepareA(stmt, reinterpret_cast<SQLCHAR*>(const_cast<char*>(sql_get)), SQL_NTS);
     SQLBindParameter(stmt, 1, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, 50, 0,
@@ -1158,6 +1178,46 @@ bool db_insert_admin_user(
     return true;
 }
 
+bool db_get_admin_role(
+    const std::string& username,
+    std::string& role_out,
+    std::string& error_out)
+{
+    role_out = "regular_admin";
+
+    SQLHENV env = SQL_NULL_HENV;
+    SQLHDBC dbc = SQL_NULL_HDBC;
+    SQLHSTMT stmt = SQL_NULL_HSTMT;
+    if (!open_sql_connection(env, dbc, &error_out)) return false;
+    if (SQLAllocHandle(SQL_HANDLE_STMT, dbc, &stmt) != SQL_SUCCESS) {
+        error_out = "SQLAllocHandle failed";
+        close_sql_connection(env, dbc);
+        return false;
+    }
+
+    const char* sql =
+        "SELECT ISNULL(role, 'regular_admin') "
+        "FROM dbo.admin_users WHERE username = ?";
+    SQLPrepareA(stmt, reinterpret_cast<SQLCHAR*>(const_cast<char*>(sql)), SQL_NTS);
+
+    SQLLEN username_ind = SQL_NTS;
+    SQLBindParameter(stmt, 1, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, 50, 0,
+                     (SQLPOINTER)username.c_str(), 0, &username_ind);
+
+    if (SQLExecute(stmt) == SQL_SUCCESS && SQLFetch(stmt) == SQL_SUCCESS) {
+        WCHAR wbuf[64] = {};
+        SQLLEN il = 0;
+        SQLGetData(stmt, 1, SQL_C_WCHAR, wbuf, sizeof(wbuf), &il);
+        if (il != SQL_NULL_DATA) {
+            role_out = wstr_to_utf8(wbuf, il);
+        }
+    }
+
+    SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+    close_sql_connection(env, dbc);
+    return true;
+}
+
 bool db_delete_admin_user(
     int user_id,
     bool& found_out,
@@ -1169,7 +1229,6 @@ bool db_delete_admin_user(
     SQLHDBC dbc = SQL_NULL_HDBC;
     if (!open_sql_connection(env, dbc, &error_out)) return false;
 
-    // Existence check.
     {
         SQLHSTMT stmt = SQL_NULL_HSTMT;
         if (SQLAllocHandle(SQL_HANDLE_STMT, dbc, &stmt) == SQL_SUCCESS) {
@@ -1203,7 +1262,7 @@ bool db_delete_admin_user(
     SQLLEN uid_ind = 0;
     SQLBindParameter(stmt, 1, SQL_PARAM_INPUT, SQL_C_LONG, SQL_INTEGER, 0, 0, &uid, 0, &uid_ind);
 
-    SQLRETURN rc = SQLExecute(stmt);
+    const SQLRETURN rc = SQLExecute(stmt);
     if (!(rc == SQL_SUCCESS || rc == SQL_SUCCESS_WITH_INFO)) {
         error_out = "DELETE FROM dbo.admin_users failed";
         SQLFreeHandle(SQL_HANDLE_STMT, stmt);
@@ -1230,7 +1289,6 @@ bool db_update_admin_user_password(
     SQLHDBC dbc = SQL_NULL_HDBC;
     if (!open_sql_connection(env, dbc, &error_out)) return false;
 
-    // Existence check.
     {
         SQLHSTMT stmt = SQL_NULL_HSTMT;
         if (SQLAllocHandle(SQL_HANDLE_STMT, dbc, &stmt) == SQL_SUCCESS) {
@@ -1275,7 +1333,7 @@ bool db_update_admin_user_password(
     SQLBindParameter(stmt, 3, SQL_PARAM_INPUT, SQL_C_LONG, SQL_INTEGER, 0, 0,
                      &uid, 0, &uid_ind);
 
-    SQLRETURN rc = SQLExecute(stmt);
+    const SQLRETURN rc = SQLExecute(stmt);
     if (!(rc == SQL_SUCCESS || rc == SQL_SUCCESS_WITH_INFO)) {
         error_out = "UPDATE dbo.admin_users password failed";
         SQLFreeHandle(SQL_HANDLE_STMT, stmt);
@@ -1313,8 +1371,7 @@ bool db_get_admin_username_by_id(
 
     SQLINTEGER uid = user_id;
     SQLLEN uid_ind = 0;
-    SQLBindParameter(stmt, 1, SQL_PARAM_INPUT, SQL_C_LONG, SQL_INTEGER, 0, 0,
-                     &uid, 0, &uid_ind);
+    SQLBindParameter(stmt, 1, SQL_PARAM_INPUT, SQL_C_LONG, SQL_INTEGER, 0, 0, &uid, 0, &uid_ind);
 
     if (SQLExecute(stmt) == SQL_SUCCESS && SQLFetch(stmt) == SQL_SUCCESS) {
         WCHAR wbuf[256] = {};
@@ -1344,18 +1401,13 @@ bool db_count_admin_users(int& count_out, std::string& error_out)
     }
 
     const char* sql = "SELECT COUNT(*) FROM dbo.admin_users";
-    if (SQLExecDirectA(stmt, reinterpret_cast<SQLCHAR*>(const_cast<char*>(sql)), SQL_NTS) != SQL_SUCCESS) {
-        error_out = "SELECT COUNT(*) FROM dbo.admin_users failed";
-        SQLFreeHandle(SQL_HANDLE_STMT, stmt);
-        close_sql_connection(env, dbc);
-        return false;
-    }
+    SQLPrepareA(stmt, reinterpret_cast<SQLCHAR*>(const_cast<char*>(sql)), SQL_NTS);
 
-    SQLINTEGER count_val = 0;
-    SQLLEN count_ind = 0;
-    if (SQLFetch(stmt) == SQL_SUCCESS) {
-        SQLGetData(stmt, 1, SQL_C_LONG, &count_val, 0, &count_ind);
-        count_out = static_cast<int>(count_val);
+    if (SQLExecute(stmt) == SQL_SUCCESS && SQLFetch(stmt) == SQL_SUCCESS) {
+        SQLINTEGER count_value = 0;
+        SQLLEN count_ind = 0;
+        SQLGetData(stmt, 1, SQL_C_LONG, &count_value, 0, &count_ind);
+        count_out = static_cast<int>(count_value);
     }
 
     SQLFreeHandle(SQL_HANDLE_STMT, stmt);

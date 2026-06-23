@@ -36,7 +36,6 @@ import websockets
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PYTHON_DIR = ROOT / "python"
 CPP_BUILD = ROOT / "cpp" / "build"
 
 
@@ -77,6 +76,18 @@ def find_cpp_exe() -> Optional[Path]:
         CPP_BUILD / "Debug" / "smart_traffic_controller.exe",
         CPP_BUILD / "Release" / "smart_traffic_controller.exe",
         CPP_BUILD / "smart_traffic_controller.exe",
+    ]
+    for c in candidates:
+        if c.exists():
+            return c
+    return None
+
+
+def find_cpp_server_exe() -> Optional[Path]:
+    candidates = [
+        CPP_BUILD / "Debug" / "traffic_server.exe",
+        CPP_BUILD / "Release" / "traffic_server.exe",
+        CPP_BUILD / "traffic_server.exe",
     ]
     for c in candidates:
         if c.exists():
@@ -198,21 +209,15 @@ def main() -> int:
     tr = TestRunner()
 
     try:
-        # start server
-        server_cmd = [
-            sys.executable,
-            "-m",
-            "uvicorn",
-            "server.app:app",
-            "--app-dir",
-            str(PYTHON_DIR),
-            "--host",
-            args.host,
-            "--port",
-            str(args.port),
-        ]
-        server_proc = start_process(server_cmd, ROOT, "FastAPI server")
-        processes.append(("FastAPI server", server_proc))
+        # start C++ server
+        server_exe = find_cpp_server_exe()
+        if server_exe is None:
+            tr.check("traffic_server executable exists", False, "traffic_server.exe not found")
+            raise RuntimeError("traffic_server executable missing")
+
+        server_cmd = [str(server_exe), str(args.port)]
+        server_proc = start_process(server_cmd, server_exe.parent, "C++ traffic_server")
+        processes.append(("C++ traffic_server", server_proc))
 
         tr.check("server health", wait_for_health(f"{base}/health"), "health endpoint did not become ready")
         if tr.failed:

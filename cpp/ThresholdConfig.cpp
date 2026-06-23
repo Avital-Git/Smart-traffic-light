@@ -1,4 +1,5 @@
 #include "ThresholdConfig.h"
+#include "server/Database.h"
 
 #include <algorithm>
 #include <cstdlib>
@@ -173,6 +174,8 @@ TrafficThresholdConfig loadTrafficThresholdConfig(const std::string& preferredPa
 }
 
 TrafficThresholdConfig loadTrafficThresholdConfigForIntersection(int intersectionId, const std::string& preferredPath) {
+    TrafficThresholdConfig cfg = loadTrafficThresholdConfig(preferredPath);
+
     if (const char* envPath = std::getenv("TRAFFIC_THRESHOLDS_FILE"); envPath != nullptr) {
         const std::string globalOverride = envPath;
         if (!globalOverride.empty()) {
@@ -196,7 +199,7 @@ TrafficThresholdConfig loadTrafficThresholdConfigForIntersection(int intersectio
         }
     }
 
-    return loadTrafficThresholdConfig();
+    return cfg;
 }
 
 } // namespace traffic

@@ -8,7 +8,6 @@ import { NetworkViewPage } from './pages/NetworkViewPage';
 import { OverviewPage } from './pages/OverviewPage';
 import { AdminPage } from './pages/AdminPage';
 import {
-  clearEmergency,
   getIntersectionLayout,
   getIntersectionStatus,
   getIntersections,
@@ -16,11 +15,12 @@ import {
   getNetworkMetrics,
   sendManualControl,
   subscribeGlobalUpdates,
-  subscribeIntersectionUpdates,
-  triggerEmergency
+  subscribeIntersectionUpdates
 } from './services/api';
-import { getAdminToken, verifyAdminToken } from './services/adminApi';
+import { adminClearEmergency, adminSendEmergency, getAdminToken, verifyAdminToken } from './services/adminApi';
 import './App.css';
+
+const DEFAULT_EMERGENCY_UI_HOLD_MS = 30000;
 
 function App() {
   const [intersections, setIntersections] = useState([]);
@@ -32,9 +32,73 @@ function App() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [manualEmergencyEnabled, setManualEmergencyEnabled] = useState(true);
+  const [emergencySubmitting, setEmergencySubmitting] = useState(false);
+  const [emergencyStatusText, setEmergencyStatusText] = useState('');
+  const [emergencyUiHoldMs, setEmergencyUiHoldMs] = useState(DEFAULT_EMERGENCY_UI_HOLD_MS);
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminAuthChecked, setAdminAuthChecked] = useState(false);
   const statusFailureCountRef = useRef(0);
+
+  const applyEmergencyUiHold = (nextStatus, currentStatus = null, source = null) => {
+    if (!nextStatus) return nextStatus;
+
+    const nowMs = Date.now();
+    const signal = nextStatus.emergency_signal || null;
+    const signalActive = Boolean(signal?.active);
+    const emergencyCleared = source === 'emergency_cleared';
+    const emergencyPreempt = source === 'emergency_preempt';
+    const prevUiUntil = Number(currentStatus?.emergencyUiUntil) || 0;
+
+    const nextUiUntil = emergencyCleared
+      ? 0
+      : ((signalActive || emergencyPreempt) ? (nowMs + emergencyUiHoldMs) : prevUiUntil);
+
+    const emergencyActive = !emergencyCleared && (signalActive || emergencyPreempt || nextUiUntil > nowMs);
+
+    const parsedLaneFromSignal = Number(signal?.lane_id);
+    const parsedLaneFromStatus = Number(nextStatus.emergencyLaneId ?? nextStatus.emergency_lane_id);
+    const parsedLaneFromCurrent = Number(currentStatus?.emergencyLaneId ?? currentStatus?.emergency_lane_id);
+
+    const emergencyLaneId = emergencyActive
+      ? (Number.isFinite(parsedLaneFromSignal)
+          ? parsedLaneFromSignal
+          : (Number.isFinite(parsedLaneFromStatus)
+              ? parsedLaneFromStatus
+              : (Number.isFinite(parsedLaneFromCurrent) ? parsedLaneFromCurrent : null)))
+      : null;
+
+    const emergencyVehicleId = emergencyActive
+      ? (signal?.vehicle_id ?? nextStatus.emergencyVehicleId ?? currentStatus?.emergencyVehicleId ?? null)
+      : null;
+
+    return {
+      ...nextStatus,
+      emergencyUiUntil: emergencyActive ? nextUiUntil : null,
+      emergencyActive,
+      emergencyLaneId,
+      emergencyVehicleId,
+      emergency_signal: emergencyActive
+        ? {
+            active: true,
+            lane_id: emergencyLaneId,
+            vehicle_id: emergencyVehicleId,
+          }
+        : null,
+      alerts: emergencyActive
+        ? [{
+            id: `emergency-${nextStatus.intersectionId ?? currentStatus?.intersectionId ?? 'selected'}`,
+            severity: 'high',
+            message: `חירום פעיל בנתיב ${emergencyLaneId ?? '-'}`,
+            timestamp: new Date().toLocaleTimeString('he-IL')
+          }]
+        : [{
+            id: `normal-${nextStatus.intersectionId ?? currentStatus?.intersectionId ?? 'selected'}`,
+            severity: 'low',
+            message: 'אין התרעות חירום פעילות',
+            timestamp: new Date().toLocaleTimeString('he-IL')
+          }]
+    };
+  };
 
   useEffect(() => {
     getIntersections().then((items) => {
@@ -46,7 +110,11 @@ function App() {
 
     getSystemConfig().then((config) => {
       const enabled = config?.hardware?.manual_emergency_enabled;
+      const latchSec = Number(config?.hardware?.emergency_latch_sec);
       setManualEmergencyEnabled(enabled !== false);
+      if (Number.isFinite(latchSec) && latchSec > 0) {
+        setEmergencyUiHoldMs(Math.round(latchSec * 1000));
+      }
     });
 
     const syncAdmin = async () => {
@@ -125,8 +193,35 @@ function App() {
     const unsubscribe = subscribeGlobalUpdates((event) => {
       setEvents((current) => [{ ...event }, ...current].slice(0, 20));
 
+      const intersectionId = Number(event?.intersection_id);
+      if (!Number.isFinite(intersectionId)) {
+        return;
+      }
+
+      if (event?.event === 'action_updated' && Number(selectedId) === intersectionId) {
+        const action = event?.payload?.action || {};
+        const source = event?.payload?.source || '';
+        const signal = event?.payload?.signal || {};
+
+        setStatus((current) => {
+          if (!current) return current;
+
+          const baseStatus = {
+            ...current,
+            currentPhase: action?.action || current.currentPhase,
+            actionSource: source || current.actionSource,
+            emergency_signal: signal,
+            emergencyLaneId: Number.isFinite(Number(signal?.lane_id)) ? Number(signal.lane_id) : current.emergencyLaneId,
+            emergencyVehicleId: signal?.vehicle_id ?? current.emergencyVehicleId,
+            intersectionId
+          };
+
+          return applyEmergencyUiHold(baseStatus, current, source);
+        });
+        return;
+      }
+
       if (event?.event === 'state_updated') {
-        const intersectionId = Number(event?.intersection_id);
         const state = event?.payload?.state;
 
         if (!Number.isFinite(intersectionId) || !state) {
@@ -156,49 +251,41 @@ function App() {
               ? Math.round(lanes.reduce((sum, lane) => sum + (lane.waiting_time_sec || 0), 0) / lanes.length)
               : 0;
 
-            setStatus({
-              intersectionId,
-              currentPhase,
-              congestionLevel: totalQueue >= 55 ? 'HIGH' : totalQueue >= 30 ? 'MEDIUM' : 'LOW',
-              totalQueue,
-              avgWaitSec,
-              manualOverrideEnabled: false,
-              emergencyActive: Boolean(state?.emergency_signal?.active),
-              emergencyLaneId: state?.emergency_signal?.lane_id ?? null,
-              emergencyVehicleId: state?.emergency_signal?.vehicle_id ?? null,
-              updatedAt: new Date((state.timestamp || Date.now() / 1000) * 1000).toLocaleString('he-IL'),
-              signals: lanes.map((lane) => ({
-                direction: directionLabel(lane.lane_id),
-                color: /^Phase(\d+)$/.test(currentPhase)
-                  ? ((lane.lane_id % 2 === Number(currentPhase.replace('Phase', ''))) ? 'GREEN' : 'RED')
-                  : 'RED',
-                queue: lane.vehicle_count,
-                waitingSec: lane.waiting_time_sec
-              })),
-              chart: lanes.map((lane, index) => ({
-                time: `נתיב ${lane.lane_id}`,
-                queue: lane.vehicle_count,
-                avgWaitSec: lane.waiting_time_sec,
-                index
-              })),
-              alerts: Boolean(state?.emergency_signal?.active)
-                ? [{
-                    id: `emergency-${intersectionId}`,
-                    severity: 'high',
-                    message: `חירום פעיל בנתיב ${state?.emergency_signal?.lane_id ?? '-'}`,
-                    timestamp: new Date().toLocaleTimeString('he-IL')
-                  }]
-                : [{
-                    id: `normal-${intersectionId}`,
-                    severity: 'low',
-                    message: 'אין התרעות חירום פעילות',
-                    timestamp: new Date().toLocaleTimeString('he-IL')
-                  }],
-              lanes,
-              laneDirections,
-              neighbors: Array.isArray(layout?.neighbors) ? layout.neighbors : []
+            setStatus((current) => {
+              const baseStatus = {
+                intersectionId,
+                currentPhase,
+                congestionLevel: totalQueue >= 55 ? 'HIGH' : totalQueue >= 30 ? 'MEDIUM' : 'LOW',
+                totalQueue,
+                avgWaitSec,
+                manualOverrideEnabled: false,
+                emergencyActive: Boolean(state?.emergency_signal?.active),
+                emergencyLaneId: state?.emergency_signal?.lane_id ?? null,
+                emergencyVehicleId: state?.emergency_signal?.vehicle_id ?? null,
+                emergency_signal: state?.emergency_signal ?? null,
+                updatedAt: new Date((state.timestamp || Date.now() / 1000) * 1000).toLocaleString('he-IL'),
+                signals: lanes.map((lane) => ({
+                  direction: directionLabel(lane.lane_id),
+                  color: lane.signal_color || 'RED',
+                  queue: lane.vehicle_count,
+                  waitingSec: lane.waiting_time_sec
+                })),
+                chart: lanes.map((lane, index) => ({
+                  time: `נתיב ${lane.lane_id}`,
+                  queue: lane.vehicle_count,
+                  avgWaitSec: lane.waiting_time_sec,
+                  index
+                })),
+                lanes,
+                laneDirections,
+                actionSource: event?.payload?.source || null,
+                neighbors: Array.isArray(layout?.neighbors) ? layout.neighbors : []
+              };
+
+              return applyEmergencyUiHold(baseStatus, current, event?.payload?.source || null);
             });
           });
+          return;
         }
 
         // Instant metrics/network card refresh (no polling wait).
@@ -265,7 +352,7 @@ function App() {
         }
 
         statusFailureCountRef.current = 0;
-        setStatus(data);
+        setStatus((current) => applyEmergencyUiHold(data, current, data?.actionSource || null));
         setError('');
       } catch {
         statusFailureCountRef.current += 1;
@@ -278,7 +365,7 @@ function App() {
     load();
 
     const unsubscribe = subscribeIntersectionUpdates(selectedId, (nextStatus) => {
-      setStatus(nextStatus);
+      setStatus((current) => applyEmergencyUiHold(nextStatus, current, nextStatus?.actionSource || null));
       setError('');
     });
 
@@ -310,8 +397,24 @@ function App() {
       return;
     }
     if (!selectedId) return;
-    const result = await triggerEmergency(selectedId, laneId, vehicleId);
-    setMessage(result.ok ? 'אות חירום נשלח בהצלחה' : `שליחת חירום נכשלה: ${result.detail || 'שגיאה לא ידועה'}`);
+    if (!Number.isFinite(Number(laneId))) {
+      setMessage('בחירת נתיב חירום אינה תקינה');
+      return;
+    }
+
+    setEmergencySubmitting(true);
+    setEmergencyStatusText(`שולח קריאת חירום לנתיב ${laneId}...`);
+
+    const result = await adminSendEmergency(selectedId, Number(laneId), vehicleId || 'AMB001');
+    setEmergencySubmitting(false);
+
+    if (result.ok) {
+      setEmergencyStatusText(`קריאת חירום נשלחה בהצלחה לנתיב ${laneId}`);
+      setMessage('אות חירום נשלח בהצלחה');
+    } else {
+      setEmergencyStatusText('');
+      setMessage(`שליחת חירום נכשלה: ${result.detail || 'שגיאה לא ידועה'}`);
+    }
   }
 
   async function handleClearEmergency() {
@@ -320,8 +423,16 @@ function App() {
       return;
     }
     if (!selectedId) return;
-    const result = await clearEmergency(selectedId);
-    setMessage(result.ok ? 'אות חירום נוקה' : `ניקוי חירום נכשל: ${result.detail || 'שגיאה לא ידועה'}`);
+    setEmergencySubmitting(true);
+    const result = await adminClearEmergency(selectedId);
+    setEmergencySubmitting(false);
+
+    if (result.ok) {
+      setEmergencyStatusText('מצב חירום נוקה');
+      setMessage('אות חירום נוקה');
+    } else {
+      setMessage(`ניקוי חירום נכשל: ${result.detail || 'שגיאה לא ידועה'}`);
+    }
   }
 
   const connectionStatus = status ? 'online' : 'offline';
@@ -401,6 +512,8 @@ function App() {
                     onSendManualControl={handleManualControl}
                     onTriggerEmergency={handleTriggerEmergency}
                     onClearEmergency={handleClearEmergency}
+                    emergencySubmitting={emergencySubmitting}
+                    emergencyStatusText={emergencyStatusText}
                   />
                 ) : (
                   <Navigate to="/live" replace />

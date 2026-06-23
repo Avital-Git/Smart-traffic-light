@@ -1,3 +1,0 @@
-C:/Users/User/Desktop/smart traffic project/build/CMakeFiles/smart_traffic_controller.dir
-C:/Users/User/Desktop/smart traffic project/build/CMakeFiles/ALL_BUILD.dir
-C:/Users/User/Desktop/smart traffic project/build/CMakeFiles/ZERO_CHECK.dir

@@ -58,7 +58,7 @@ python
 בתיקייה הראשית, טרמינל חדש:
 
 ```bash
-python -m uvicorn server.app:app --app-dir python --reload --host 127.0.0.1 --port 8000
+cpp\build\Release\traffic_server.exe 8000
 ```
 
 ## שלב 2.5 (מומלץ): הרצה מקצה לקצה בפקודה אחת
@@ -73,7 +73,7 @@ python python/run_e2e.py --with-client
 
 מה זה מרים אוטומטית:
 
-1. FastAPI Server
+1. C++ traffic_server
 2. C++ Controller במצב `--server`
 3. `python/auto_launcher.py` (סימולציה כברירת מחדל)
 4. React Dashboard (אם הועבר `--with-client`)
@@ -88,7 +88,7 @@ python python/run_e2e.py --with-client
 
 תראי:
 ```
-Uvicorn running on http://127.0.0.1:8000
+Traffic server listening on http://127.0.0.1:8000
 ```
 
 ## שלב 3: הפעלת מפעיל צמתים (AUTO-LAUNCHER)
@@ -208,7 +208,7 @@ sudo systemctl status mssql-server
 
 ```bash
 # השתמש בפורט אחר:
-python -m uvicorn server.app:app --app-dir python --host 127.0.0.1 --port 8001
+cpp\build\Release\traffic_server.exe 8001
 ```
 
 ## סיכום
@@ -216,7 +216,7 @@ python -m uvicorn server.app:app --app-dir python --host 127.0.0.1 --port 8001
 ```
 ┌─────────────────────────────────────────┐
 │ 1. SQL Server → database/database_schema_sqlserver.sql │
-│ 2. Server → uvicorn server.app:app (--app-dir python) │
+│ 2. Server → cpp\\build\\Release\\traffic_server.exe 8000 │
 │ 3. Auto-Launcher → python python/auto_launcher.py      │
 │ 4. Frontend → npm start (client/)        │
 └─────────────────────────────────────────┘
@@ -274,7 +274,7 @@ TRAFFIC_API_KEYS_FILE=/etc/smart_traffic/api_keys.json
 
 \\\ash
 # ����� ����
-python -m uvicorn python.server.app:app --app-dir . --port 8000
+cpp\\build\\Release\\traffic_server.exe 8000
 
 # ������� ���� - ���� ����� KPIs
 python python/kpi_measurement.py

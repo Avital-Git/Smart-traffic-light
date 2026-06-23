@@ -2,7 +2,7 @@
 run_e2e.py
 ----------
 One-command launcher for end-to-end flow:
-Vision/Simulation -> FastAPI Server -> C++ Controller -> React Dashboard (optional)
+Vision/Simulation -> C++ traffic_server -> C++ Controller -> React Dashboard (optional)
 
 Usage examples:
   python python/run_e2e.py
@@ -43,6 +43,22 @@ def find_cpp_controller_exe() -> Path:
 
     raise FileNotFoundError(
         "C++ controller executable not found. Build it first (cmake --build cpp/build --config Debug)."
+    )
+
+
+def find_cpp_server_exe() -> Path:
+    candidates = [
+        CPP_BUILD / "Debug" / "traffic_server.exe",
+        CPP_BUILD / "Release" / "traffic_server.exe",
+        CPP_BUILD / "traffic_server.exe",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+
+    raise FileNotFoundError(
+        "C++ traffic_server executable not found. Build it first "
+        "(cmake --build cpp/build --config Debug --target traffic_server)."
     )
 
 
@@ -153,23 +169,13 @@ def main() -> int:
             )
             return 1
 
-        # 1) FastAPI server
-        server_cmd = [
-            sys.executable,
-            "-m",
-            "uvicorn",
-            "server.app:app",
-            "--app-dir",
-            str(PYTHON_DIR),
-            "--host",
-            args.host,
-            "--port",
-            str(args.port),
-        ]
+        # 1) C++ traffic_server
+        server_exe = find_cpp_server_exe()
+        server_cmd = [str(server_exe), str(args.port)]
         server_spec = make_proc_spec(
-            "FastAPI server",
+            "C++ traffic_server",
             server_cmd,
-            ROOT,
+            server_exe.parent,
             restart_on_clean_exit=False,
             env=run_env,
         )

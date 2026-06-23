@@ -34,8 +34,9 @@ struct NeighborRow {
 };
 
 struct AdminUserRow {
-    int user_id;
+    int user_id{0};
     std::string username;
+    std::string role;        // "super_admin" or "regular_admin"
     std::string created_at;  // ISO string, may be empty
     std::string last_login;  // ISO string, may be empty
 };
@@ -152,12 +153,20 @@ bool db_touch_admin_last_login(const std::string& username);
 
 // Insert a new admin user. Returns new user_id in user_id_out.
 // If username already exists, duplicate_username_out is set to true.
+// role should be "super_admin" or "regular_admin".
 bool db_insert_admin_user(
     const std::string& username,
     const std::string& password_hash,
     const std::string& salt,
     int& user_id_out,
     bool& duplicate_username_out,
+    std::string& error_out,
+    const std::string& role = "regular_admin");
+
+// Fetch the role for a given username. Returns false on DB error.
+bool db_get_admin_role(
+    const std::string& username,
+    std::string& role_out,
     std::string& error_out);
 
 // Delete admin user by id. found_out=false means user_id did not exist.

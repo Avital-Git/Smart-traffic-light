@@ -12,6 +12,7 @@ add_executable(smart_traffic_controller
     ConflictConfig.cpp
     NeighborCoordConfig.cpp
     PhaseConfig.cpp
+    server/RuntimeConfig.cpp
     SelfTests.cpp
     ThresholdConfig.cpp
     Simulation.cpp
@@ -51,6 +52,11 @@ add_executable(traffic_server
     server/Router.cpp
     server/Database.cpp
     server/JwtAuth.cpp
+)
+
+target_include_directories(smart_traffic_controller PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/server
+    ${nlohmann_json_SOURCE_DIR}/include
 )
 
 target_include_directories(traffic_server PRIVATE

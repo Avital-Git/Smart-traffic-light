@@ -37,3 +37,20 @@ cmake_install.cmake
 # Misc generated artifacts
 *.hot-update.js
 *.hot-update.js.map
+
+# Visual Studio
+.vs/
+cpp/.vs/
+
+# Client build output
+client/build/
+
+# Python cache
+*.pyc
+python/__pycache__/
+
+# Word/extract artifacts
+.docx_extract/
+
+# PDF files
+*.pdf

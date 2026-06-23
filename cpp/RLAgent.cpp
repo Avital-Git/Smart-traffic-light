@@ -81,9 +81,74 @@ public:
     void apply(DecisionContext& ctx, DecisionResult& result) const override {
         if (result.decided) return;
         if (!ctx.state.emergencyVehicleActive) return;
-        if (!ctx.emergencyPhase.has_value()) return;
-        result.decided = true;
-        result.phaseId = *ctx.emergencyPhase;
+
+        // Freeze policy during emergency:
+        // Prefer a phase that contains the emergency lane and keeps the
+        // largest mutually-safe green set static.
+        if (ctx.state.emergencyLaneId.has_value()) {
+            const int emergencyLane = *ctx.state.emergencyLaneId;
+
+            std::unordered_map<int, std::size_t> laneIndexById;
+            laneIndexById.reserve(ctx.state.laneIds.size());
+            for (std::size_t i = 0; i < ctx.state.laneIds.size(); ++i) {
+                laneIndexById[ctx.state.laneIds[i]] = i;
+            }
+
+            bool found = false;
+            std::size_t bestGreenCount = 0;
+            int bestTotalQueued = -1;
+            double bestTotalWaiting = -1.0;
+            int bestPhaseId = -1;
+
+            for (const auto& action : ctx.allActions) {
+                if (std::find(action.greenLanes.begin(), action.greenLanes.end(), emergencyLane) == action.greenLanes.end()) {
+                    continue;
+                }
+
+                const std::size_t greenCount = action.greenLanes.size();
+                int totalQueued = 0;
+                double totalWaiting = 0.0;
+                for (int laneId : action.greenLanes) {
+                    const auto it = laneIndexById.find(laneId);
+                    if (it == laneIndexById.end()) continue;
+                    const std::size_t idx = it->second;
+                    if (idx < ctx.state.vehicleCounts.size()) {
+                        totalQueued += std::max(0, ctx.state.vehicleCounts[idx]);
+                    }
+                    if (idx < ctx.state.waitingTimes.size()) {
+                        totalWaiting += std::max(0.0, ctx.state.waitingTimes[idx]);
+                    }
+                }
+
+                const bool better =
+                    (!found) ||
+                    (greenCount > bestGreenCount) ||
+                    (greenCount == bestGreenCount && totalQueued > bestTotalQueued) ||
+                    (greenCount == bestGreenCount && totalQueued == bestTotalQueued && totalWaiting > bestTotalWaiting) ||
+                    (greenCount == bestGreenCount && totalQueued == bestTotalQueued &&
+                        std::abs(totalWaiting - bestTotalWaiting) < 1e-9 && action.phaseId < bestPhaseId);
+
+                if (better) {
+                    found = true;
+                    bestGreenCount = greenCount;
+                    bestTotalQueued = totalQueued;
+                    bestTotalWaiting = totalWaiting;
+                    bestPhaseId = action.phaseId;
+                }
+            }
+
+            if (found) {
+                result.decided = true;
+                result.phaseId = bestPhaseId;
+                return;
+            }
+        }
+
+        // Fallback: use externally-resolved emergency phase when present.
+        if (ctx.emergencyPhase.has_value()) {
+            result.decided = true;
+            result.phaseId = *ctx.emergencyPhase;
+        }
     }
 };
 
@@ -106,17 +171,27 @@ class StarvationRule final : public IRule {
 public:
     void apply(DecisionContext& ctx, DecisionResult& result) const override {
         if (result.decided) return;
-        if (ctx.state.laneIds.empty() || ctx.state.waitingTimes.empty()) return;
+        if (ctx.state.laneIds.empty() || ctx.state.waitingTimes.empty() || ctx.state.vehicleCounts.empty()) return;
 
-        const std::size_t n = std::min(ctx.state.laneIds.size(), ctx.state.waitingTimes.size());
+        const std::size_t n = std::min({ctx.state.laneIds.size(), ctx.state.waitingTimes.size(), ctx.state.vehicleCounts.size()});
         std::size_t longestIdx = 0;
         double longestWait = -1.0;
+        bool hasQueuedLane = false;
 
         for (std::size_t i = 0; i < n; ++i) {
+            if (ctx.state.vehicleCounts[i] <= 0) {
+                continue;
+            }
+
+            hasQueuedLane = true;
             if (ctx.state.waitingTimes[i] > longestWait) {
                 longestWait = ctx.state.waitingTimes[i];
                 longestIdx = i;
             }
+        }
+
+        if (!hasQueuedLane) {
+            return;
         }
 
         if (longestWait > ctx.thresholds.waitingTimeSec.mediumMax) {
@@ -132,6 +207,10 @@ public:
         }
 
         for (std::size_t i = 0; i < n; ++i) {
+            if (ctx.state.vehicleCounts[i] <= 0) {
+                continue;
+            }
+
             if (ctx.state.waitingTimes[i] <= ctx.thresholds.waitingTimeSec.lowMax) {
                 continue;
             }
@@ -160,16 +239,17 @@ public:
             return;
         }
 
-        std::size_t leastLoadedIdx = 0;
-        int leastLoad = std::numeric_limits<int>::max();
+        std::size_t mostLoadedIdx = 0;
+        int maxLoad = std::numeric_limits<int>::min();
         for (std::size_t i = 0; i < n; ++i) {
-            if (ctx.state.vehicleCounts[i] < leastLoad) {
-                leastLoad = ctx.state.vehicleCounts[i];
-                leastLoadedIdx = i;
+            const int load = std::max(0, ctx.state.vehicleCounts[i]);
+            if (load > maxLoad) {
+                maxLoad = load;
+                mostLoadedIdx = i;
             }
         }
 
-        const int laneId = ctx.state.laneIds[leastLoadedIdx];
+        const int laneId = ctx.state.laneIds[mostLoadedIdx];
         for (const auto& action : ctx.allActions) {
             if (std::find(action.greenLanes.begin(), action.greenLanes.end(), laneId) != action.greenLanes.end()) {
                 result.decided = true;
@@ -288,6 +368,9 @@ void RLAgent::update(
     const JunctionState& nextState,
     const std::vector<Action>& nextValidActions
 ) {
+    // Emergency preemption is handled as a hard safety override (freeze state).
+    // Do not train Q-values on these forced decisions.
+    if (prevState.emergencyVehicleActive || nextState.emergencyVehicleActive) return;
     if (nextValidActions.empty()) return;
 
     const std::string prevKey = encodeState(prevState);
@@ -601,7 +684,12 @@ int RLAgent::selectRuleBasedAction(const JunctionState& state, const std::vector
             const std::size_t idx = it->second;
             if (idx >= state.vehicleCounts.size() || idx >= state.waitingTimes.size()) continue;
 
-            const int vehicleLevel = discretizeThreeLevel(static_cast<double>(state.vehicleCounts[idx]), thresholds_.vehicleCount);
+            const int rawCount = std::max(0, state.vehicleCounts[idx]);
+            if (rawCount <= 0) {
+                continue;
+            }
+
+            const int vehicleLevel = discretizeThreeLevel(static_cast<double>(rawCount), thresholds_.vehicleCount);
             const int waitingLevel = discretizeThreeLevel(state.waitingTimes[idx], thresholds_.waitingTimeSec);
 
             int densityLevel = 0;

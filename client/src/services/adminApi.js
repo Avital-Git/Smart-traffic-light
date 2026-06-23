@@ -217,6 +217,8 @@ export async function getIntersectionConflicts(intersectionId) {
   return parseResponse(response);
 }
 
+// ── User management ──────────────────────────────────────────────────────────
+
 export async function adminListUsers() {
   const response = await fetch(`${API_BASE}/admin/users`, {
     method: 'GET',

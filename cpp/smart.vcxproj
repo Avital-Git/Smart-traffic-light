@@ -1,0 +1,649 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <ProjectGuid>{E15B44CE-C6E0-4484-BCFE-72D303035600}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="build\cmakefiles\4.3.2\compileridcxx\CMakeCXXCompilerId.cpp" />
+    <ClCompile Include="build\_deps\httplib-src\example\benchmark.cc" />
+    <ClCompile Include="build\_deps\httplib-src\example\client.cc" />
+    <ClCompile Include="build\_deps\httplib-src\example\hello.cc" />
+    <ClCompile Include="build\_deps\httplib-src\example\redirect.cc" />
+    <ClCompile Include="build\_deps\httplib-src\example\server.cc" />
+    <ClCompile Include="build\_deps\httplib-src\example\simplecli.cc" />
+    <ClCompile Include="build\_deps\httplib-src\example\simplesvr.cc" />
+    <ClCompile Include="build\_deps\httplib-src\example\ssecli.cc" />
+    <ClCompile Include="build\_deps\httplib-src\example\ssesvr.cc" />
+    <ClCompile Include="build\_deps\httplib-src\example\upload.cc" />
+    <ClCompile Include="build\_deps\httplib-src\test\fuzzing\server_fuzzer.cc" />
+    <ClCompile Include="build\_deps\httplib-src\test\fuzzing\standalone_fuzz_target_runner.cpp" />
+    <ClCompile Include="build\_deps\httplib-src\test\gtest\gtest-all.cc" />
+    <ClCompile Include="build\_deps\httplib-src\test\gtest\gtest_main.cc" />
+    <ClCompile Include="build\_deps\httplib-src\test\include_httplib.cc" />
+    <ClCompile Include="build\_deps\httplib-src\test\test.cc" />
+    <ClCompile Include="build\_deps\httplib-src\test\test_proxy.cc" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\accept__string.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\array.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\array_t.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\at__json_pointer.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\at__json_pointer_const.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\at__keytype.c++17.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\at__keytype_const.c++17.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\at__object_t_key_type.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\at__object_t_key_type_const.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\at__size_type.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\at__size_type_const.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\back.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\basic_json__basic_json.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\basic_json__CompatibleType.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\basic_json__copyassignment.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\basic_json__InputIt_InputIt.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\basic_json__list_init_t.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\basic_json__moveconstructor.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\basic_json__nullptr_t.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\basic_json__size_type_basic_json.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\basic_json__value_t.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\begin.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\binary.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\binary_t.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\boolean_t.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\byte_container_with_subtype__byte_container_with_subtype.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\byte_container_with_subtype__clear_subtype.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\byte_container_with_subtype__has_subtype.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\byte_container_with_subtype__set_subtype.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\byte_container_with_subtype__subtype.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\cbegin.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\cbor_tag_handler_t.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\cend.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\clear.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\contains__json_pointer.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\contains__keytype.c++17.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\contains__object_t_key_type.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\count__keytype.c++17.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\count__object_t_key_type.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\crbegin.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\crend.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\default_object_comparator_t.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\diagnostics_extended.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\diagnostics_standard.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\diff.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\dump.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\emplace.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\emplace_back.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\empty.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\end.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\erase__IteratorType.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\erase__IteratorType_IteratorType.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\erase__keytype.c++17.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\erase__object_t_key_type.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\erase__size_type.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\error_handler_t.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\exception.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\find__keytype.c++17.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\find__object_t_key_type.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\flatten.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\from_bjdata.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\from_bson.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\from_cbor.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\from_json__default_constructible.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\from_json__non_default_constructible.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\from_msgpack.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\from_ubjson.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\front.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\get_allocator.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\get_binary.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\get_ptr.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\get_ref.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\get_to.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\get__PointerType.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\get__ValueType_const.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\insert.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\insert__count.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\insert__ilist.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\insert__range.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\insert__range_object.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\invalid_iterator.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\is_array.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\is_binary.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\is_boolean.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\is_discarded.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\is_null.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\is_number.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\is_number_float.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\is_number_integer.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\is_number_unsigned.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\is_object.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\is_primitive.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\is_string.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\is_structured.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\items.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\json_base_class_t.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\json_lines.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\json_pointer.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\json_pointer__back.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\json_pointer__empty.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\json_pointer__operator_add.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\json_pointer__operator_add_binary.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\json_pointer__operator_string_t.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\json_pointer__operator__equal.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\json_pointer__operator__equal_stringtype.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\json_pointer__operator__notequal.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\json_pointer__operator__notequal_stringtype.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\json_pointer__parent_pointer.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\json_pointer__pop_back.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\json_pointer__push_back.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\json_pointer__string_t.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\json_pointer__to_string.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\max_size.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\merge_patch.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\meta.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\nlohmann_define_type_intrusive_explicit.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\nlohmann_define_type_intrusive_macro.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\nlohmann_define_type_intrusive_only_serialize_explicit.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\nlohmann_define_type_intrusive_only_serialize_macro.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\nlohmann_define_type_intrusive_with_default_explicit.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\nlohmann_define_type_intrusive_with_default_macro.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\nlohmann_define_type_non_intrusive_explicit.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\nlohmann_define_type_non_intrusive_macro.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\nlohmann_define_type_non_intrusive_only_serialize_explicit.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\nlohmann_define_type_non_intrusive_only_serialize_macro.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\nlohmann_define_type_non_intrusive_with_default_explicit.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\nlohmann_define_type_non_intrusive_with_default_macro.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\nlohmann_json_namespace.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\nlohmann_json_namespace_begin.c++17.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\nlohmann_json_namespace_no_version.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\nlohmann_json_serialize_enum.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\nlohmann_json_serialize_enum_2.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\nlohmann_json_version.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\number_float_t.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\number_integer_t.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\number_unsigned_t.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\object.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\object_comparator_t.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\object_t.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator_array__json_pointer.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator_array__json_pointer_const.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator_array__keytype.c++17.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator_array__keytype_const.c++17.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator_array__object_t_key_type.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator_array__object_t_key_type_const.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator_array__size_type.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator_array__size_type_const.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator_deserialize.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator_literal_json.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator_literal_json_pointer.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator_ltlt__basic_json.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator_ltlt__json_pointer.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator_spaceship__const_reference.c++20.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator_spaceship__scalartype.c++20.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator__equal.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator__equal__nullptr_t.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator__equal__specializations.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator__greater.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator__greaterequal.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator__less.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator__lessequal.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator__notequal.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator__notequal__nullptr_t.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator__ValueType.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator__value_t.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\ordered_json.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\ordered_map.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\other_error.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\out_of_range.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\parse_error.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\parse__allow_exceptions.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\parse__array__parser_callback_t.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\parse__contiguouscontainer__parser_callback_t.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\parse__istream__parser_callback_t.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\parse__iterator_pair.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\parse__pointers.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\parse__string__parser_callback_t.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\patch.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\patch_inplace.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\push_back.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\push_back__initializer_list.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\push_back__object_t__value.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\rbegin.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\README.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\rend.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\sax_parse.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\sax_parse__binary.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\size.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\std_hash.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\std_swap.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\string_t.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\swap__array_t.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\swap__binary_t.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\swap__object_t.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\swap__reference.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\swap__string_t.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\to_bjdata.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\to_bson.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\to_cbor.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\to_json.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\to_msgpack.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\to_string.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\to_ubjson.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\type.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\type_error.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\type_name.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\unflatten.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\update.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\update__range.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\value__json_ptr.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\value__keytype.c++17.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\value__object_t_key_type.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\mkdocs\docs\integration\conan\example.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\mkdocs\docs\integration\example.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\mkdocs\docs\integration\vcpkg\example.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\abi\config\custom.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\abi\config\default.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\abi\config\noversion.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\abi\diag\diag.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\abi\diag\diag_off.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\abi\diag\diag_on.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\abi\inline_ns\use_current.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\abi\inline_ns\use_v3_10_5.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\abi\main.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\benchmarks\src\benchmarks.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\cmake_add_subdirectory\project\main.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\cmake_fetch_content2\project\main.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\cmake_fetch_content\project\main.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\cmake_import\project\main.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\cmake_import_minver\project\main.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\cmake_target_include_directories\project\Bar.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\cmake_target_include_directories\project\Foo.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\cmake_target_include_directories\project\main.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\fuzzer-driver_afl.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\fuzzer-parse_bjdata.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\fuzzer-parse_bson.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\fuzzer-parse_cbor.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\fuzzer-parse_json.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\fuzzer-parse_msgpack.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\fuzzer-parse_ubjson.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-32bit.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-algorithms.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-allocator.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-alt-string.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-assert_macro.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-binary_formats.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-bjdata.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-bson.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-byte_container_with_subtype.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-capacity.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-cbor.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-class_const_iterator.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-class_iterator.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-class_lexer.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-class_parser.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-comparison.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-concepts.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-constructor1.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-constructor2.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-convenience.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-conversions.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-custom-base-class.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-deserialization.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-diagnostics.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-disabled_exceptions.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-element_access1.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-element_access2.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-hash.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-inspection.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-items.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-iterators1.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-iterators2.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-json_patch.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-json_pointer.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-large_json.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-merge_patch.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-meta.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-modifiers.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-msgpack.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-no-mem-leak-on-adl-serialize.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-noexcept.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-ordered_json.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-ordered_map.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-pointer_access.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-readme.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-reference_access.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-regression1.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-regression2.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-serialization.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-testsuites.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-to_chars.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-type_traits.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-ubjson.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-udl.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-udt.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-udt_macro.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-unicode1.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-unicode2.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-unicode3.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-unicode4.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-unicode5.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-user_defined_input.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-windows_h.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-wstring.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\afl\afl_driver.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerCrossOver.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerDriver.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerExtFunctionsDlsym.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerExtFunctionsWeak.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerExtFunctionsWeakAlias.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerIO.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerIOPosix.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerIOWindows.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerLoop.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerMain.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerMerge.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerMutate.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerSHA1.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerTracePC.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerTraceState.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerUtil.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerUtilDarwin.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerUtilLinux.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerUtilPosix.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerUtilWindows.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\standalone\StandaloneFuzzTargetMain.c" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\AbsNegAndConstant64Test.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\AbsNegAndConstantTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\AccumulateAllocationsTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\AFLDriverTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\BufferOverflowOnInput.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\CallerCalleeTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\CounterTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\CustomCrossOverTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\CustomMutatorTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\DivTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\DSO1.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\DSO2.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\DSOTestExtra.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\DSOTestMain.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\EmptyTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\FourIndependentBranchesTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\FullCoverageSetTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\FuzzerUnittest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\InitializeTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\LeakTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\LeakTimeoutTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\LoadTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\MemcmpTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\NthRunCrashTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\NullDerefOnEmptyTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\NullDerefTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\OneHugeAllocTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\OutOfMemorySingleLargeMallocTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\OutOfMemoryTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\RepeatedBytesTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\RepeatedMemcmp.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\ShrinkControlFlowTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\ShrinkValueProfileTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\SignedIntOverflowTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\SimpleCmpTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\SimpleDictionaryTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\SimpleHashTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\SimpleTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\SimpleThreadedTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\SingleMemcmpTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\SingleStrcmpTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\SingleStrncmpTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\SpamyTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\StrcmpTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\StrncmpOOBTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\StrncmpTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\StrstrTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\SwapCmpTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\Switch2Test.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\SwitchTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\ThreadedLeakTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\ThreadedTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\TimeoutEmptyTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\TimeoutTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\TraceMallocTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\UninstrumentedTest.cpp" />
+    <ClCompile Include="build\_deps\nlohmann_json-src\tools\macro_builder\main.cpp" />
+    <ClCompile Include="ConflictConfig.cpp" />
+    <ClCompile Include="Junction.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="NeighborCoordConfig.cpp" />
+    <ClCompile Include="PhaseConfig.cpp" />
+    <ClCompile Include="RLAgent.cpp" />
+    <ClCompile Include="SelfTests.cpp" />
+    <ClCompile Include="server\Database.cpp" />
+    <ClCompile Include="server\JwtAuth.cpp" />
+    <ClCompile Include="server\Router.cpp" />
+    <ClCompile Include="server\server_main.cpp" />
+    <ClCompile Include="server\TrafficServer.cpp" />
+    <ClCompile Include="server\WebSocketHub.cpp" />
+    <ClCompile Include="Simulation.cpp" />
+    <ClCompile Include="ThresholdConfig.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="build\cmakefiles\4.3.2\CMakeDetermineCompilerABI_CXX.bin" />
+    <None Include="build\_deps\httplib-src\test\www2\dir\index.html" />
+    <None Include="build\_deps\httplib-src\test\www2\dir\test.html" />
+    <None Include="build\_deps\httplib-src\test\www3\dir\index.html" />
+    <None Include="build\_deps\httplib-src\test\www3\dir\test.html" />
+    <None Include="build\_deps\httplib-src\test\www\dir\index.html" />
+    <None Include="build\_deps\httplib-src\test\www\dir\test.html" />
+    <None Include="build\_deps\nlohmann_json-src\tests\reports\2016-08-29-fuzz\index.html" />
+    <None Include="build\_deps\nlohmann_json-src\tests\reports\2016-10-02-fuzz\index.html" />
+    <None Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerExtFunctions.def" />
+    <None Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerFlags.def" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="build\_deps\httplib-src\httplib.h" />
+    <ClInclude Include="build\_deps\httplib-src\test\gtest\gtest.h" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\adl_serializer.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\byte_container_with_subtype.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\abi_macros.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\conversions\from_json.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\conversions\to_chars.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\conversions\to_json.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\exceptions.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\hash.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\input\binary_reader.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\input\input_adapters.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\input\json_sax.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\input\lexer.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\input\parser.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\input\position_t.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\iterators\internal_iterator.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\iterators\iteration_proxy.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\iterators\iterator_traits.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\iterators\iter_impl.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\iterators\json_reverse_iterator.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\iterators\primitive_iterator.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\json_custom_base_class.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\json_pointer.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\json_ref.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\macro_scope.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\macro_unscope.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\meta\call_std\begin.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\meta\call_std\end.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\meta\cpp_future.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\meta\detected.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\meta\identity_tag.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\meta\is_sax.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\meta\std_fs.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\meta\type_traits.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\meta\void_t.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\output\binary_writer.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\output\output_adapters.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\output\serializer.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\string_concat.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\string_escape.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\value_t.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\json.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\json_fwd.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\ordered_map.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\thirdparty\hedley\hedley.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\thirdparty\hedley\hedley_undef.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\single_include\nlohmann\json.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\single_include\nlohmann\json_fwd.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\abi\config\config.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\abi\diag\diag.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\abi\include\nlohmann\json_v3_10_5.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\cmake_target_include_directories\project\Bar.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\cmake_target_include_directories\project\Foo.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\src\make_test_data_available.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\src\test_utils.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\thirdparty\doctest\doctest.h" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\thirdparty\doctest\doctest_compatibility.h" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\thirdparty\fifo_map\fifo_map.hpp" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerCorpus.h" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerDefs.h" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerDictionary.h" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerExtFunctions.h" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerInterface.h" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerInternal.h" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerIO.h" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerMerge.h" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerMutate.h" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerOptions.h" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerRandom.h" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerSHA1.h" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerTracePC.h" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerUtil.h" />
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerValueBitMap.h" />
+    <ClInclude Include="ConflictConfig.h" />
+    <ClInclude Include="Controller.h" />
+    <ClInclude Include="GreedyAgingController.h" />
+    <ClInclude Include="http_client.h" />
+    <ClInclude Include="Junction.h" />
+    <ClInclude Include="NeighborCoordConfig.h" />
+    <ClInclude Include="PhaseConfig.h" />
+    <ClInclude Include="RLAgent.h" />
+    <ClInclude Include="rl_agent.h" />
+    <ClInclude Include="SelfTests.h" />
+    <ClInclude Include="server\Database.h" />
+    <ClInclude Include="server\JwtAuth.h" />
+    <ClInclude Include="server\Router.h" />
+    <ClInclude Include="server\TrafficServer.h" />
+    <ClInclude Include="server\WebSocketHub.h" />
+    <ClInclude Include="Simulation.h" />
+    <ClInclude Include="ThresholdConfig.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

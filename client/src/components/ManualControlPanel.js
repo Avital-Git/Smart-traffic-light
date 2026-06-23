@@ -1,15 +1,54 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 export function ManualControlPanel({
+  status,
   onSend,
   onTriggerEmergency,
   onClearEmergency,
-  manualEmergencyEnabled
+  manualEmergencyEnabled,
+  emergencySubmitting,
+  emergencyStatusText
 }) {
   const [enabled, setEnabled] = useState(false);
   const [action, setAction] = useState('Phase0');
-  const [emergencyLaneId, setEmergencyLaneId] = useState(0);
+  const [emergencyLaneId, setEmergencyLaneId] = useState('');
   const [vehicleId, setVehicleId] = useState('AMB001');
+
+  const emergencyActive = Boolean(
+    status?.emergencyActive ||
+    status?.emergency_active ||
+    status?.emergency_signal?.active ||
+    status?.state?.emergency_signal?.active ||
+    status?.actionSource === 'emergency_preempt'
+  );
+
+  const emergencyLaneOptions = useMemo(() => {
+    const liveLanes = Array.isArray(status?.lanes) ? status.lanes : [];
+    return liveLanes
+      .map((lane, index) => {
+        const laneId = Number(lane?.lane_id ?? lane?.id);
+        if (!Number.isFinite(laneId)) return null;
+        return {
+          value: String(laneId),
+          label: `Lane #${laneId} · ${lane?.direction || lane?.lane_direction || '?'} · עומס ${Number(lane?.vehicle_count || 0)}`,
+          sortOrder: Number.isFinite(Number(lane?.camera_index)) ? Number(lane.camera_index) : index,
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+  }, [status]);
+
+  useEffect(() => {
+    if (!emergencyLaneOptions.length) {
+      setEmergencyLaneId('');
+      return;
+    }
+
+    const exists = emergencyLaneOptions.some((lane) => lane.value === emergencyLaneId);
+    if (!exists) {
+      setEmergencyLaneId(emergencyLaneOptions[0].value);
+    }
+  }, [emergencyLaneOptions, emergencyLaneId]);
 
   return (
     <div className="card">
@@ -37,12 +76,13 @@ export function ManualControlPanel({
           <select
             className="select"
             value={emergencyLaneId}
-            onChange={(e) => setEmergencyLaneId(Number(e.target.value))}
+            onChange={(e) => setEmergencyLaneId(e.target.value)}
+            disabled={!emergencyLaneOptions.length || emergencySubmitting || emergencyActive}
           >
-            <option value={0}>נתיב 0 (N)</option>
-            <option value={1}>נתיב 1 (S)</option>
-            <option value={2}>נתיב 2 (E)</option>
-            <option value={3}>נתיב 3 (W)</option>
+            {!emergencyLaneOptions.length && <option value="">אין נתיבים זמינים בצומת</option>}
+            {emergencyLaneOptions.map((lane) => (
+              <option key={lane.value} value={lane.value}>{lane.label}</option>
+            ))}
           </select>
 
           <select
@@ -59,14 +99,27 @@ export function ManualControlPanel({
           <div style={{ display: 'flex', gap: 8 }}>
             <button
               className="button danger"
-              onClick={() => onTriggerEmergency(emergencyLaneId, vehicleId)}
+              onClick={() => onTriggerEmergency(Number(emergencyLaneId), vehicleId)}
+              disabled={!emergencyLaneOptions.length || emergencyLaneId === '' || emergencySubmitting || emergencyActive}
             >
-              שלח חירום
+              {emergencySubmitting ? 'שולח חירום...' : 'שלח חירום'}
             </button>
-            <button className="button" onClick={() => onClearEmergency()}>
+            <button className="button" onClick={() => onClearEmergency()} disabled={emergencySubmitting || !emergencyActive}>
               נקה חירום
             </button>
           </div>
+
+          {emergencyStatusText && (
+            <div className="badge badge-ok" style={{ marginTop: 10 }}>
+              {emergencyStatusText}
+            </div>
+          )}
+
+          {emergencyActive && (
+            <div className="badge badge-danger" style={{ marginTop: 10 }}>
+              מצב חירום פעיל בצומת זו
+            </div>
+          )}
         </>
       ) : (
         <>

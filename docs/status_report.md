@@ -15,7 +15,7 @@
 
 | דרישה מההצעה | סטטוס | מה קיים בפועל | מה עדיין חסר |
 |---|---|---|---|
-| מערכת ניהול תנועה חכמה בזמן אמת | Partial | קיימת שרשרת State → Decision → Action דרך [python/server/app.py](../python/server/app.py), [cpp/main.cpp](../cpp/main.cpp), [cpp/RLAgent.cpp](../cpp/RLAgent.cpp) | אין עדיין הוכחה/מדידה מסודרת של זמן אמת תחת עומס אמיתי |
+| מערכת ניהול תנועה חכמה בזמן אמת | Partial | קיימת שרשרת State → Decision → Action דרך [cpp/server/TrafficServer.cpp](../cpp/server/TrafficServer.cpp), [cpp/main.cpp](../cpp/main.cpp), [cpp/RLAgent.cpp](../cpp/RLAgent.cpp) | אין עדיין הוכחה/מדידה מסודרת של זמן אמת תחת עומס אמיתי |
 | התאמה דינאמית למצב התנועה | Done | קבלת vehicle count, density, waiting time והחלטה דינאמית בצד C++/Server | נדרש טיוב נוסף של policy ו-KPI |
 | תמיכה בצמתים עם מספר נתיבים משתנה | Done | מיושם ב-[python/auto_launcher.py](../python/auto_launcher.py), [python/vision/intersection_vision.py](../python/vision/intersection_vision.py), [cpp/main.cpp](../cpp/main.cpp) | - |
 | זיהוי רכבי חירום ומתן קדימות | Partial | יש מודל `emergency_signal`, בחירת פאזה מתאימה ו-reward shaping | אין אינטגרציית GPS אמיתית, אין אימות מקור האות |
@@ -56,7 +56,7 @@
 
 | דרישה מההצעה | סטטוס | מה קיים בפועל | מה עדיין חסר |
 |---|---|---|---|
-| שרת מרכזי/API | Done | FastAPI ב-[python/server/app.py](../python/server/app.py) | - |
+| שרת מרכזי/API | Done | C++ traffic_server ב-[cpp/server/TrafficServer.cpp](../cpp/server/TrafficServer.cpp) | - |
 | REST/HTTP להעברת מצב ופעולה | Done | `/state`, `/intersection/{id}`, `/packet`, `/action` | - |
 | WebSocket לעדכונים רציפים | Missing | לא קיים מימוש WebSocket פעיל | נדרש אם רוצים לעמוד בהצעה המקורית |
 | MQTT בין צמתים | Missing | לא קיים | נדרש רק אם בוחרים לממש לפי ההצעה המקורית |

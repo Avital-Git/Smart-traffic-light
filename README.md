@@ -21,9 +21,9 @@ smart-traffic-project/
 ├── vision/
 │   ├── intersection_vision.py      # עיבוד וידאו + YOLO זיהוי
 │   └── __init__.py
-├── server/
-│   ├── app.py                      # FastAPI שרת
-│   └── README.md
+├── cpp/server/
+│   ├── TrafficServer.cpp           # שרת C++ פעיל
+│   └── Database.cpp
 ├── controller/
 │   ├── rl_agent.h/.cpp             # C++ - RL החלטות
 │   ├── main.cpp
@@ -65,12 +65,17 @@ python db_intersections.py
 
 **טרמינל 1:**
 ```bash
-python -m uvicorn server.app:app --reload --host 127.0.0.1 --port 8000
+cpp\build\Release\traffic_server.exe 8000
 ```
 
 **טרמינל 2:**
 ```bash
-python auto_launcher.py
+python python/auto_launcher.py
+```
+
+**טרמינל 3 (אופציונלי - בקר RL מלא):**
+```bash
+cpp\build\Release\smart_traffic_controller.exe --server 127.0.0.1 8000
 ```
 
 ✅ **סיים!** המערכת קוראת את SQL Server ופועלת עם מספר דינאמי של נתיבים!
@@ -125,8 +130,8 @@ num_cameras=6 → RL vector בגודל 25
 
 ## 🛠️ טכנולוגיות
 
-- **Python**: YOLO, OpenCV, FastAPI, SQL Server
-- **C++**: RL agent (בבנייה)
+- **Python**: YOLO, OpenCV, SQL Server (Vision/Feeder)
+- **C++**: traffic_server + RL controller
 - **React**: ממשק משתמש (בבנייה)
 - **SQL Server**: מסד נתונים דינאמי
 
@@ -135,9 +140,8 @@ num_cameras=6 → RL vector בגודל 25
 ## 📚 תיעוד
 
 - [GETTING_STARTED.md](GETTING_STARTED.md) - הוראות מלאות
-- [server/README.md](server/README.md) - API
-- [controller/README.md](controller/README.md) - C++
-- [website/README.md](website/README.md) - React
+- [cpp/README.md](cpp/README.md) - C++ server + controller
+- [client/README.md](client/README.md) - React
 
 ---
 

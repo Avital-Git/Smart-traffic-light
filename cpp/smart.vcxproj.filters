@@ -1,0 +1,1564 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="ConflictConfig.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Junction.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="NeighborCoordConfig.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PhaseConfig.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="RLAgent.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SelfTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Simulation.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ThresholdConfig.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\cmakefiles\4.3.2\compileridcxx\CMakeCXXCompilerId.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\httplib-src\example\benchmark.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\httplib-src\example\client.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\httplib-src\example\hello.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\httplib-src\example\redirect.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\httplib-src\example\server.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\httplib-src\example\simplecli.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\httplib-src\example\simplesvr.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\httplib-src\example\ssecli.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\httplib-src\example\ssesvr.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\httplib-src\example\upload.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\httplib-src\test\include_httplib.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\httplib-src\test\test.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\httplib-src\test\test_proxy.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\httplib-src\test\fuzzing\standalone_fuzz_target_runner.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\httplib-src\test\fuzzing\server_fuzzer.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\httplib-src\test\gtest\gtest-all.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\httplib-src\test\gtest\gtest_main.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\accept__string.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\array.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\array_t.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\at__json_pointer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\at__json_pointer_const.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\at__keytype.c++17.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\at__keytype_const.c++17.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\at__object_t_key_type.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\at__object_t_key_type_const.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\at__size_type.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\at__size_type_const.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\back.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\basic_json__basic_json.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\basic_json__CompatibleType.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\basic_json__copyassignment.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\basic_json__InputIt_InputIt.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\basic_json__list_init_t.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\basic_json__moveconstructor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\basic_json__nullptr_t.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\basic_json__size_type_basic_json.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\basic_json__value_t.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\begin.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\binary.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\binary_t.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\boolean_t.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\byte_container_with_subtype__byte_container_with_subtype.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\byte_container_with_subtype__clear_subtype.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\byte_container_with_subtype__has_subtype.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\byte_container_with_subtype__set_subtype.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\byte_container_with_subtype__subtype.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\cbegin.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\cbor_tag_handler_t.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\cend.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\clear.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\contains__json_pointer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\contains__keytype.c++17.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\contains__object_t_key_type.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\count__keytype.c++17.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\count__object_t_key_type.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\crbegin.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\crend.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\default_object_comparator_t.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\diagnostics_extended.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\diagnostics_standard.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\diff.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\dump.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\emplace.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\emplace_back.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\empty.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\end.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\erase__IteratorType.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\erase__IteratorType_IteratorType.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\erase__keytype.c++17.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\erase__object_t_key_type.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\erase__size_type.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\error_handler_t.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\exception.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\find__keytype.c++17.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\find__object_t_key_type.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\flatten.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\from_bjdata.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\from_bson.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\from_cbor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\from_json__default_constructible.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\from_json__non_default_constructible.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\from_msgpack.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\from_ubjson.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\front.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\get_allocator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\get_binary.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\get_ptr.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\get_ref.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\get_to.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\get__PointerType.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\get__ValueType_const.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\insert.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\insert__count.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\insert__ilist.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\insert__range.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\insert__range_object.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\invalid_iterator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\is_array.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\is_binary.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\is_boolean.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\is_discarded.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\is_null.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\is_number.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\is_number_float.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\is_number_integer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\is_number_unsigned.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\is_object.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\is_primitive.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\is_string.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\is_structured.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\items.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\json_base_class_t.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\json_lines.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\json_pointer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\json_pointer__back.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\json_pointer__empty.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\json_pointer__operator_add.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\json_pointer__operator_add_binary.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\json_pointer__operator_string_t.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\json_pointer__operator__equal.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\json_pointer__operator__equal_stringtype.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\json_pointer__operator__notequal.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\json_pointer__operator__notequal_stringtype.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\json_pointer__parent_pointer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\json_pointer__pop_back.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\json_pointer__push_back.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\json_pointer__string_t.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\json_pointer__to_string.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\max_size.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\merge_patch.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\meta.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\nlohmann_define_type_intrusive_explicit.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\nlohmann_define_type_intrusive_macro.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\nlohmann_define_type_intrusive_only_serialize_explicit.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\nlohmann_define_type_intrusive_only_serialize_macro.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\nlohmann_define_type_intrusive_with_default_explicit.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\nlohmann_define_type_intrusive_with_default_macro.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\nlohmann_define_type_non_intrusive_explicit.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\nlohmann_define_type_non_intrusive_macro.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\nlohmann_define_type_non_intrusive_only_serialize_explicit.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\nlohmann_define_type_non_intrusive_only_serialize_macro.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\nlohmann_define_type_non_intrusive_with_default_explicit.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\nlohmann_define_type_non_intrusive_with_default_macro.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\nlohmann_json_namespace.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\nlohmann_json_namespace_begin.c++17.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\nlohmann_json_namespace_no_version.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\nlohmann_json_serialize_enum.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\nlohmann_json_serialize_enum_2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\nlohmann_json_version.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\number_float_t.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\number_integer_t.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\number_unsigned_t.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\object.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\object_comparator_t.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\object_t.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator_array__json_pointer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator_array__json_pointer_const.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator_array__keytype.c++17.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator_array__keytype_const.c++17.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator_array__object_t_key_type.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator_array__object_t_key_type_const.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator_array__size_type.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator_array__size_type_const.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator_deserialize.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator_literal_json.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator_literal_json_pointer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator_ltlt__basic_json.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator_ltlt__json_pointer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator_spaceship__const_reference.c++20.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator_spaceship__scalartype.c++20.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator__equal.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator__equal__nullptr_t.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator__equal__specializations.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator__greater.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator__greaterequal.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator__less.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator__lessequal.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator__notequal.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator__notequal__nullptr_t.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator__ValueType.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\operator__value_t.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\ordered_json.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\ordered_map.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\other_error.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\out_of_range.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\parse_error.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\parse__allow_exceptions.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\parse__array__parser_callback_t.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\parse__contiguouscontainer__parser_callback_t.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\parse__istream__parser_callback_t.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\parse__iterator_pair.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\parse__pointers.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\parse__string__parser_callback_t.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\patch.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\patch_inplace.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\push_back.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\push_back__initializer_list.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\push_back__object_t__value.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\rbegin.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\README.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\rend.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\sax_parse.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\sax_parse__binary.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\size.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\std_hash.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\std_swap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\string_t.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\swap__array_t.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\swap__binary_t.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\swap__object_t.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\swap__reference.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\swap__string_t.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\to_bjdata.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\to_bson.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\to_cbor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\to_json.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\to_msgpack.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\to_string.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\to_ubjson.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\type.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\type_error.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\type_name.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\unflatten.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\update.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\update__range.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\value__json_ptr.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\value__keytype.c++17.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\examples\value__object_t_key_type.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\mkdocs\docs\integration\example.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\mkdocs\docs\integration\conan\example.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\docs\mkdocs\docs\integration\vcpkg\example.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\abi\main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\abi\config\custom.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\abi\config\default.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\abi\config\noversion.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\abi\diag\diag.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\abi\diag\diag_off.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\abi\diag\diag_on.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\abi\inline_ns\use_current.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\abi\inline_ns\use_v3_10_5.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\benchmarks\src\benchmarks.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\cmake_add_subdirectory\project\main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\cmake_fetch_content\project\main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\cmake_fetch_content2\project\main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\cmake_import\project\main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\cmake_import_minver\project\main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\cmake_target_include_directories\project\Bar.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\cmake_target_include_directories\project\Foo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\cmake_target_include_directories\project\main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\fuzzer-driver_afl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\fuzzer-parse_bjdata.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\fuzzer-parse_bson.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\fuzzer-parse_cbor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\fuzzer-parse_json.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\fuzzer-parse_msgpack.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\fuzzer-parse_ubjson.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-32bit.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-algorithms.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-allocator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-alt-string.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-assert_macro.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-binary_formats.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-bjdata.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-bson.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-byte_container_with_subtype.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-capacity.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-cbor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-class_const_iterator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-class_iterator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-class_lexer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-class_parser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-comparison.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-concepts.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-constructor1.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-constructor2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-convenience.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-conversions.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-custom-base-class.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-deserialization.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-diagnostics.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-disabled_exceptions.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-element_access1.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-element_access2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-hash.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-inspection.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-items.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-iterators1.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-iterators2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-json_patch.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-json_pointer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-large_json.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-merge_patch.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-meta.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-modifiers.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-msgpack.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-no-mem-leak-on-adl-serialize.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-noexcept.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-ordered_json.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-ordered_map.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-pointer_access.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-readme.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-reference_access.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-regression1.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-regression2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-serialization.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-testsuites.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-to_chars.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-type_traits.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-ubjson.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-udl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-udt.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-udt_macro.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-unicode1.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-unicode2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-unicode3.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-unicode4.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-unicode5.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-user_defined_input.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-windows_h.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit-wstring.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\src\unit.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerCrossOver.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerDriver.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerExtFunctionsDlsym.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerExtFunctionsWeak.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerExtFunctionsWeakAlias.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerIO.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerIOPosix.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerIOWindows.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerLoop.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerMain.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerMerge.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerMutate.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerSHA1.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerTracePC.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerTraceState.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerUtil.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerUtilDarwin.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerUtilLinux.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerUtilPosix.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerUtilWindows.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\afl\afl_driver.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\standalone\StandaloneFuzzTargetMain.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\AbsNegAndConstant64Test.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\AbsNegAndConstantTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\AccumulateAllocationsTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\AFLDriverTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\BufferOverflowOnInput.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\CallerCalleeTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\CounterTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\CustomCrossOverTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\CustomMutatorTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\DivTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\DSO1.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\DSO2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\DSOTestExtra.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\DSOTestMain.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\EmptyTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\FourIndependentBranchesTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\FullCoverageSetTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\FuzzerUnittest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\InitializeTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\LeakTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\LeakTimeoutTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\LoadTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\MemcmpTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\NthRunCrashTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\NullDerefOnEmptyTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\NullDerefTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\OneHugeAllocTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\OutOfMemorySingleLargeMallocTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\OutOfMemoryTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\RepeatedBytesTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\RepeatedMemcmp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\ShrinkControlFlowTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\ShrinkValueProfileTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\SignedIntOverflowTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\SimpleCmpTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\SimpleDictionaryTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\SimpleHashTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\SimpleTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\SimpleThreadedTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\SingleMemcmpTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\SingleStrcmpTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\SingleStrncmpTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\SpamyTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\StrcmpTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\StrncmpOOBTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\StrncmpTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\StrstrTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\SwapCmpTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\Switch2Test.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\SwitchTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\ThreadedLeakTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\ThreadedTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\TimeoutEmptyTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\TimeoutTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\TraceMallocTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\test\UninstrumentedTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="build\_deps\nlohmann_json-src\tools\macro_builder\main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="server\Database.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="server\JwtAuth.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="server\Router.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="server\server_main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="server\TrafficServer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="server\WebSocketHub.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerExtFunctions.def">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerFlags.def">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="build\cmakefiles\4.3.2\CMakeDetermineCompilerABI_CXX.bin">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="build\_deps\httplib-src\test\www\dir\index.html" />
+    <None Include="build\_deps\httplib-src\test\www\dir\test.html" />
+    <None Include="build\_deps\httplib-src\test\www2\dir\index.html" />
+    <None Include="build\_deps\httplib-src\test\www2\dir\test.html" />
+    <None Include="build\_deps\httplib-src\test\www3\dir\index.html" />
+    <None Include="build\_deps\httplib-src\test\www3\dir\test.html" />
+    <None Include="build\_deps\nlohmann_json-src\tests\reports\2016-08-29-fuzz\index.html" />
+    <None Include="build\_deps\nlohmann_json-src\tests\reports\2016-10-02-fuzz\index.html" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ConflictConfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Controller.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GreedyAgingController.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="http_client.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Junction.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="NeighborCoordConfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PhaseConfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RLAgent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rl_agent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SelfTests.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Simulation.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ThresholdConfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\httplib-src\httplib.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\httplib-src\test\gtest\gtest.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\adl_serializer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\byte_container_with_subtype.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\json.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\json_fwd.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\ordered_map.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\abi_macros.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\exceptions.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\hash.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\json_custom_base_class.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\json_pointer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\json_ref.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\macro_scope.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\macro_unscope.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\string_concat.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\string_escape.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\value_t.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\conversions\from_json.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\conversions\to_chars.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\conversions\to_json.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\input\binary_reader.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\input\input_adapters.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\input\json_sax.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\input\lexer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\input\parser.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\input\position_t.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\iterators\internal_iterator.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\iterators\iteration_proxy.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\iterators\iterator_traits.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\iterators\iter_impl.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\iterators\json_reverse_iterator.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\iterators\primitive_iterator.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\meta\cpp_future.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\meta\detected.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\meta\identity_tag.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\meta\is_sax.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\meta\std_fs.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\meta\type_traits.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\meta\void_t.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\meta\call_std\begin.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\meta\call_std\end.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\output\binary_writer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\output\output_adapters.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\detail\output\serializer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\thirdparty\hedley\hedley.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\include\nlohmann\thirdparty\hedley\hedley_undef.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\single_include\nlohmann\json.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\single_include\nlohmann\json_fwd.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\abi\config\config.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\abi\diag\diag.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\abi\include\nlohmann\json_v3_10_5.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\cmake_target_include_directories\project\Bar.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\cmake_target_include_directories\project\Foo.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\src\make_test_data_available.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\src\test_utils.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\thirdparty\doctest\doctest.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\thirdparty\doctest\doctest_compatibility.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\thirdparty\fifo_map\fifo_map.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerCorpus.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerDefs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerDictionary.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerExtFunctions.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerInterface.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerInternal.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerIO.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerMerge.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerMutate.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerOptions.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerRandom.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerSHA1.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerTracePC.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerUtil.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="build\_deps\nlohmann_json-src\tests\thirdparty\fuzzer\FuzzerValueBitMap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="server\Database.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="server\JwtAuth.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="server\Router.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="server\TrafficServer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="server\WebSocketHub.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
