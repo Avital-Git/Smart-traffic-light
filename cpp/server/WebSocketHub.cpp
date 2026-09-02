@@ -1,8 +1,8 @@
 // WebSocketHub.cpp
-// Minimal RFC-6455 WebSocket server for Windows using raw WinSock + WinCrypt.
-// No extra libraries required beyond what is already linked (ws2_32, advapi32).
+// שרת WebSocket מינימלי ל-Windows לפי פרוטוקול RFC-6455, באמצעות WinSock גולמי + WinCrypt.
+// אין צורך בספריות חיצוניות מעבר ל-ws2_32 ו-advapi32 שכבר מקושרות.
 
-// winsock2.h must come before windows.h
+// winsock2.h חייב להופיע לפני windows.h
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <windows.h>
@@ -22,12 +22,14 @@
 
 using json = nlohmann::json;
 
-// ── Convenience alias ────────────────────────────────────────────────────────
+// ── המרות עזר בין SOCKET ל-uintptr_t ───────────────────────────────────────
+// נדרש כי WSClient מאחסן socket כ-uintptr_t כדי להימנע מ-winsock2.h בהדר
 static inline SOCKET to_sock(uintptr_t v) { return (SOCKET)v; }
 static inline uintptr_t to_uint(SOCKET s) { return (uintptr_t)s; }
 static const uintptr_t INVALID = to_uint(INVALID_SOCKET);
 
-// ── Base64 ───────────────────────────────────────────────────────────────────
+// ── Base64 — קידוד לצורך RFC-6455 handshake ────────────────────────────────
+// ממיר bytes גולמיים לייצוג Base64 סטנדרטי (לא base64url)
 static const char B64[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -46,7 +48,9 @@ static std::string base64_encode(const uint8_t* d, size_t n) {
     return out;
 }
 
-// ── SHA-1 via WinCrypt (advapi32) ────────────────────────────────────────────
+// ── SHA-1 דרך WinCrypt (advapi32) ───────────────────────────────────────────
+// נדרש לחישוב Sec-WebSocket-Accept לפי RFC-6455:
+// SHA1(client_key + GUID) → Base64
 static std::vector<uint8_t> sha1(const std::string& data) {
     HCRYPTPROV hProv = 0;
     HCRYPTHASH hHash = 0;
@@ -63,13 +67,15 @@ static std::vector<uint8_t> sha1(const std::string& data) {
     return result;
 }
 
+// מחשב את ה-Sec-WebSocket-Accept: key + GUID קבוע → SHA1 → Base64
 static std::string ws_accept_key(const std::string& key) {
     auto h = sha1(key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
     return base64_encode(h.data(), h.size());
 }
 
-// ── TCP helpers ───────────────────────────────────────────────────────────────
-// Receive exactly 'len' bytes. Returns >0 on success, ≤0 on error/close.
+// ── עזרי TCP ────────────────────────────────────────────────────────────────
+// קורא בדיוק 'len' bytes — ממשיך עד שקיבל הכל או עד סגירת החיבור
+// מחזיר >0 בהצלחה, ≤0 בשגיאה/סגירה
 static int recv_exact(SOCKET sock, void* buf, int len) {
     int done = 0;
     while (done < len) {
@@ -80,7 +86,7 @@ static int recv_exact(SOCKET sock, void* buf, int len) {
     return done;
 }
 
-// Read until \r\n\r\n (HTTP request end) or buffer full.
+// קורא את בקשת ה-HTTP עד \r\n\r\n (סוף ה-headers) או עד מילוי הבאפר
 static std::string read_http_request(SOCKET sock) {
     std::string buf;
     buf.reserve(2048);
@@ -96,9 +102,9 @@ static std::string read_http_request(SOCKET sock) {
     return buf;
 }
 
-// ── HTTP header helpers ───────────────────────────────────────────────────────
+// ── עזרי HTTP headers ────────────────────────────────────────────────────────
+// שולף ערך header לפי שם (חיפוש case-insensitive)
 static std::string req_header(const std::string& req, const std::string& name) {
-    // Case-insensitive search for "\r\n<name>: <value>\r\n"
     std::string lower_req = req;
     std::transform(lower_req.begin(), lower_req.end(), lower_req.begin(), ::tolower);
     std::string target = "\r\n" + name + ":";
@@ -113,8 +119,8 @@ static std::string req_header(const std::string& req, const std::string& name) {
     return req.substr(pos, end - pos);
 }
 
+// מחלץ את הנתיב מ-request line: "GET /path HTTP/1.1" → "/path"
 static std::string req_path(const std::string& req) {
-    // "GET /path HTTP/1.1\r\n..."
     auto p1 = req.find(' ');
     if (p1 == std::string::npos) return "";
     auto p2 = req.find(' ', p1 + 1);
@@ -123,17 +129,17 @@ static std::string req_path(const std::string& req) {
     return req.substr(p1 + 1, p2 - p1 - 1);
 }
 
-// ── WebSocket frame helpers ───────────────────────────────────────────────────
-// Send an unmasked text frame (server → client direction is always unmasked).
+// ── עזרי WebSocket frames ────────────────────────────────────────────────────
+// שולח frame טקסט ללא masking (שרת→לקוח תמיד ללא mask לפי RFC-6455)
 static bool ws_send(SOCKET sock, const std::string& text) {
     size_t len = text.size();
     std::vector<uint8_t> frame;
     frame.reserve(len + 4);
-    frame.push_back(0x81);           // FIN + opcode=1 (text)
+    frame.push_back(0x81);           // FIN=1 + opcode=1 (text frame)
     if (len < 126) {
-        frame.push_back((uint8_t)len);
+        frame.push_back((uint8_t)len); // אורך קטן — מוטמע ישירות
     } else {
-        frame.push_back(0x7e);       // 16-bit extended length
+        frame.push_back(0x7e);       // אורך מורחב 16-bit (126..65535 bytes)
         frame.push_back((uint8_t)(len >> 8));
         frame.push_back((uint8_t)(len & 0xff));
     }
@@ -143,12 +149,13 @@ static bool ws_send(SOCKET sock, const std::string& text) {
     return r == (int)frame.size();
 }
 
+// שולח close frame ללקוח (FIN + opcode=8, ללא payload)
 static void ws_close_frame(SOCKET sock) {
-    uint8_t f[2] = {0x88, 0x00};    // FIN + opcode=8 (close), no payload
+    uint8_t f[2] = {0x88, 0x00};
     ::send(sock, (const char*)f, 2, 0);
 }
 
-// ── WebSocketHub ──────────────────────────────────────────────────────────────
+// ── WebSocketHub — מימוש ─────────────────────────────────────────────────────
 
 WebSocketHub::WebSocketHub(int port) : port_(port) {}
 
@@ -157,22 +164,24 @@ WebSocketHub::~WebSocketHub() { stop(); }
 void WebSocketHub::start() {
     running_ = true;
     if (!own_listener_enabled_) {
+        // מצב adopt-only: ה-Router החיצוני מחזיק את הפורט ומזין sockets דרך adopt_socket()
         std::cout << "[WSHub] running in adopt-only mode (external Router owns the port)\n";
         return;
     }
+    // מצב רגיל: פותח listener עצמאי על הפורט
     accept_thread_ = std::thread(&WebSocketHub::accept_loop, this);
 }
 
 void WebSocketHub::stop() {
     running_ = false;
 
-    // Close the listening socket to unblock accept().
+    // סגירת socket ה-listen — מוציא את accept() מהחסימה
     if (listen_sock_ != INVALID) {
         closesocket(to_sock(listen_sock_));
         listen_sock_ = INVALID;
     }
 
-    // Close every registered client socket (detached threads will unblock).
+    // סגירת כל sockets הלקוחות — threads מנותקים יתעוררו ויצאו מהלולאה
     std::vector<SOCKET> to_close;
     {
         std::lock_guard<std::mutex> lk(clients_mutex_);
@@ -183,10 +192,11 @@ void WebSocketHub::stop() {
         clients_.clear();
     }
     for (SOCKET s : to_close) closesocket(s);
-    // Accept thread exits on its own after listen_sock_ is closed.
+    // thread ה-accept יצא מעצמו לאחר סגירת listen_sock_
 }
 
-// ── Accept loop ───────────────────────────────────────────────────────────────
+// ── לולאת קבלת חיבורים ──────────────────────────────────────────────────────
+// פותחת socket, מבצעת bind+listen, ולכל חיבור חדש מפעילה handle_client ב-thread נפרד
 void WebSocketHub::accept_loop() {
     SOCKET srv = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (srv == INVALID_SOCKET) {
@@ -216,9 +226,9 @@ void WebSocketHub::accept_loop() {
 
     while (running_) {
         SOCKET client = ::accept(srv, nullptr, nullptr);
-        if (client == INVALID_SOCKET) break;   // stop() closed listen_sock_
+        if (client == INVALID_SOCKET) break;   // stop() סגר את listen_sock_
 
-        // Each client handled in its own detached thread.
+        // כל לקוח מטופל ב-thread נפרד מנותק
         std::thread(&WebSocketHub::handle_client, this, to_uint(client)).detach();
     }
 
@@ -226,11 +236,12 @@ void WebSocketHub::accept_loop() {
     listen_sock_ = INVALID;
 }
 
-// ── Per-client handler ────────────────────────────────────────────────────────
+// ── טיפול בלקוח בודד ────────────────────────────────────────────────────────
+// פועל ב-thread נפרד: handshake → welcome → לולאת קריאה → ניקוי
 void WebSocketHub::handle_client(uintptr_t raw_sock) {
     SOCKET sock = to_sock(raw_sock);
 
-    // Set a 1-second receive timeout so the read loop can notice stop().
+    // timeout של 1 שניה — מאפשר ללולאת הקריאה לבדוק את running_ מדי שניה
     DWORD tv = 1000;
     setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (char*)&tv, sizeof(tv));
 
@@ -242,7 +253,7 @@ void WebSocketHub::handle_client(uintptr_t raw_sock) {
 
     auto client = std::make_shared<WSClient>(raw_sock, iid);
 
-    // Send welcome message (mirrors Python server)
+    // שליחת הודעת ברוכים הבאים (תואמת את פורמט שרת ה-Python)
     double ts = std::chrono::duration<double>(
         std::chrono::system_clock::now().time_since_epoch()).count();
 
@@ -270,21 +281,21 @@ void WebSocketHub::handle_client(uintptr_t raw_sock) {
         ws_send(sock, welcome.dump());
     }
 
-    // Register client in hub
+    // רישום הלקוח ברשימה הגלובלית של ה-hub
     {
         std::lock_guard<std::mutex> lk(clients_mutex_);
         clients_.push_back(client);
     }
 
-    // ── Read loop: drain frames until disconnect ──────────────────────────────
+    // ── לולאת קריאה — מרוקנת frames עד ניתוק ───────────────────────────────
     while (client->alive && running_) {
         uint8_t hdr[2];
         int n = recv_exact(sock, hdr, 2);
-        if (n == 0) break;          // graceful close
+        if (n == 0) break;          // סגירה מסודרת מצד הלקוח
         if (n < 0) {
             int err = WSAGetLastError();
-            if (err == WSAETIMEDOUT) continue;  // normal 1-sec wakeup
-            break;                  // real socket error
+            if (err == WSAETIMEDOUT) continue;  // timeout רגיל של 1 שניה — המשך
+            break;                  // שגיאת socket אמיתית
         }
 
         uint8_t  opcode = hdr[0] & 0x0f;
@@ -302,7 +313,7 @@ void WebSocketHub::handle_client(uintptr_t raw_sock) {
             for (int i = 0; i < 8; i++) plen = (plen << 8) | ext[i];
         }
 
-        // Sanity limit: no single frame > 64 KiB expected from browser clients.
+        // הגבלת בטיחות: frame בודד לא יעלה על 64 KiB (לקוחות דפדפן שולחים רק pings)
         if (plen > 65536) break;
 
         uint8_t mask[4] = {};
@@ -316,27 +327,29 @@ void WebSocketHub::handle_client(uintptr_t raw_sock) {
             // (Payload content ignored — clients only send keep-alive pings)
         }
 
-        if (opcode == 0x8) {        // close frame
-            ws_close_frame(sock);
+        if (opcode == 0x8) {        // close frame — לקוח יזם סגירה
+            ws_close_frame(sock);   // מגיב עם close frame
             break;
         }
-        // opcode 0x9 = ping — browser keep-alives handled by recv timeout
+        // opcode 0x9 = ping מהדפדפן — מטופל על ידי ה-recv timeout, אין צורך בתגובה מיידית
     }
 
-    // ── Cleanup ───────────────────────────────────────────────────────────────
+    // ── ניקוי לאחר ניתוק ────────────────────────────────────────────────────
     if (client->alive.exchange(false))
         closesocket(sock);
 
-    // Stale entry will be pruned on the next broadcast.
+    // הרשומה הישנה תוסר ברשימה בשידור הבא (broadcast מנקה רשומות מתות)
 }
 
 // ── HTTP → WebSocket upgrade handshake ───────────────────────────────────────
+// שלבים: קריאת request → אימות Upgrade header → חילוץ Sec-WebSocket-Key
+//         → קביעת סוג מנוי לפי הנתיב → שליחת 101 Switching Protocols
 bool WebSocketHub::perform_handshake(uintptr_t raw_sock, int& out_iid) {
     SOCKET sock = to_sock(raw_sock);
     std::string req = read_http_request(sock);
     if (req.empty()) return false;
 
-    // Must contain "Upgrade: websocket"
+    // חייב להכיל "Upgrade: websocket"
     std::string upgrade = req_header(req, "Upgrade");
     std::transform(upgrade.begin(), upgrade.end(), upgrade.begin(), ::tolower);
     if (upgrade.find("websocket") == std::string::npos) return false;
@@ -344,18 +357,18 @@ bool WebSocketHub::perform_handshake(uintptr_t raw_sock, int& out_iid) {
     std::string ws_key = req_header(req, "Sec-WebSocket-Key");
     if (ws_key.empty()) return false;
 
-    // Parse path → determine subscription type
+    // קביעת סוג המנוי לפי הנתיב
     std::string path = req_path(req);
-    out_iid = -1;  // default: global
+    out_iid = -1;  // ברירת מחדל: גלובלי (/ws/updates)
 
     const std::string iid_prefix = "/ws/intersection/";
     if (path.rfind(iid_prefix, 0) == 0) {
         try { out_iid = std::stoi(path.substr(iid_prefix.size())); }
         catch (...) { out_iid = -1; }
     }
-    // /ws/updates → stays -1
+    // /ws/updates → נשאר -1
 
-    // Build RFC-6455 101 Switching Protocols response
+    // בניית תגובת RFC-6455 101 Switching Protocols
     std::string accept = ws_accept_key(ws_key);
     std::string resp =
         "HTTP/1.1 101 Switching Protocols\r\n"
@@ -368,28 +381,30 @@ bool WebSocketHub::perform_handshake(uintptr_t raw_sock, int& out_iid) {
     return r == (int)resp.size();
 }
 
-// ── Broadcast ─────────────────────────────────────────────────────────────────
+// ── שידור הודעות ─────────────────────────────────────────────────────────────
+
+// שידור לכל הלקוחות ללא סינון
 void WebSocketHub::broadcast_all(const std::string& msg) {
     broadcast_impl(-1, msg);
 }
 
 void WebSocketHub::adopt_socket(uintptr_t raw_sock) {
-    // Run the same per-client handler on a detached thread so the router
-    // can return immediately to accept the next connection.
-    running_ = true; // safe if start() hasn't been called yet
+    // מפעיל handle_client ב-thread מנותק כדי שה-Router יוכל לחזור מיד לקבל חיבורים
+    running_ = true; // בטוח גם אם start() טרם נקרא
     std::thread(&WebSocketHub::handle_client, this, raw_sock).detach();
 }
 
+// שידור רק ללקוחות הרשומים לצומת מסוים
 void WebSocketHub::broadcast_intersection(int iid, const std::string& msg) {
     broadcast_impl(iid, msg);
 }
 
 void WebSocketHub::broadcast_impl(int filter_iid, const std::string& msg) {
-    // Snapshot the client list under lock (brief), then send outside lock.
+    // לוקח snapshot מהרשימה תחת lock (קצר), ואז שולח מחוץ ל-lock כדי למנוע deadlock
     std::vector<std::shared_ptr<WSClient>> snapshot;
     {
         std::lock_guard<std::mutex> lk(clients_mutex_);
-        // Prune dead entries while we have the lock.
+        // ניקוי רשומות מתות תוך כדי שיש לנו את ה-lock
         clients_.erase(
             std::remove_if(clients_.begin(), clients_.end(),
                            [](const auto& c){ return !c->alive; }),
@@ -399,16 +414,17 @@ void WebSocketHub::broadcast_impl(int filter_iid, const std::string& msg) {
 
     for (auto& c : snapshot) {
         if (!c->alive) continue;
-        // filter_iid < 0  → broadcast_all  → send to everyone
-        // filter_iid >= 0 → per-intersection → matching subscribers AND
-        //                   global ("/ws/updates", intersection_id == -1)
-        //                   subscribers, which mirrors the Python LiveUpdateHub.
+        // filter_iid < 0  → broadcast_all  → שולח לכולם
+        // filter_iid >= 0 → לצומת ספציפי → שולח למנויים של אותו צומת
+        //                   וגם למנויים גלובליים (intersection_id == -1, /ws/updates)
+        //                   — תואם את ה-LiveUpdateHub של Python
         if (filter_iid >= 0 &&
             c->intersection_id != filter_iid &&
             c->intersection_id != -1) continue;
 
         std::lock_guard<std::mutex> lk(c->send_mutex);
         if (!ws_send(to_sock(c->sock), msg)) {
+            // שגיאת שליחה — מסמן את הלקוח כמת וסוגר את ה-socket
             if (c->alive.exchange(false))
                 closesocket(to_sock(c->sock));
         }

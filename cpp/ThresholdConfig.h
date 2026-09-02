@@ -4,9 +4,9 @@
 
 namespace traffic {
 
-struct ThreeLevelThresholds {
-    double lowMax = 0.0;
-    double mediumMax = 0.0;
+struct ThreeLevelThresholds {// מבנה שמכיל את הערכים המקסימליים של שלוש רמות שונות
+    double lowMax = 0.0;// הערך המקסימלי של הרמה הנמוכה
+    double mediumMax = 0.0;// הערך המקסימלי של הרמה הבינונית
 };
 
 struct TrafficThresholdConfig {
@@ -23,21 +23,21 @@ struct TrafficThresholdConfig {
     std::string source = "defaults";
 };
 
-// Loads thresholds from JSON file path. If path is empty, resolve default search locations.
-// Falls back to sensible defaults when file is missing/invalid.
+// טוען את קובץ התצורה של הסף. אם הנתיב ריק, מחפש במיקומים ברירת מחדל.
+// אם הקובץ לא נמצא או לא ניתן לטעון אותו, מחזיר את ערכי ברירת המחדל.
 TrafficThresholdConfig loadTrafficThresholdConfig(const std::string& preferredPath = "");
 
-// Loads thresholds with per-intersection override support.
-// Resolution order:
-// 1) env var TRAFFIC_THRESHOLDS_FILE (global override)
+// טוען את הספים עם תמיכה בהחלפה לכל צומת.
+// סדר הפתרון:
+// 1) משתנה סביבה TRAFFIC_THRESHOLDS_FILE (החלפה גלובלית)
 // 2) ./traffic_thresholds_<intersectionId>.json
 // 3) ./cpp/traffic_thresholds_<intersectionId>.json
-// 4) generic loader loadTrafficThresholdConfig(preferredPath)
+// 4) טוען את קובץ התצורה הכללי loadTrafficThresholdConfig(preferredPath)
 TrafficThresholdConfig loadTrafficThresholdConfigForIntersection(int intersectionId, const std::string& preferredPath = "");
 
-// Resolves threshold config path by priority:
-// 1) preferredPath argument (if non-empty)
-// 2) env var TRAFFIC_THRESHOLDS_FILE
+// פותר את נתיב קובץ התצורה של הסף לפי סדר עדיפות:
+// 1) ארגומנט preferredPath (אם לא ריק)
+// 2) משתנה סביבה TRAFFIC_THRESHOLDS_FILE
 // 3) ./traffic_thresholds.json
 // 4) ./cpp/traffic_thresholds.json
 std::string resolveThresholdConfigPath(const std::string& preferredPath = "");

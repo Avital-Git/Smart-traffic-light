@@ -5,21 +5,21 @@
 #include <unordered_map>
 #include <vector>
 
-struct IntersectionRow {
+struct IntersectionRow {// מידע על צומת שנשלף מ-dbo.intersections
     int id;
     std::string code;
     std::string name;
     std::string city;
 };
 
-struct LaneRow {
+struct LaneRow {// מידע על נתיב שנשלף מ-dbo.intersection_lanes
     int lane_id;
     int camera_index;
     std::string direction;
     std::string description;   // may be empty
 };
 
-struct ConflictRow {
+struct ConflictRow {// מידע על קונפליקט בין נתיבים שנשלף מ-dbo.lane_conflicts
     int conflict_id;
     int lane_id_1;
     int lane_id_2;
@@ -27,13 +27,20 @@ struct ConflictRow {
     std::string created_at;    // ISO string, may be empty
 };
 
-struct NeighborRow {
+struct NeighborRow {// מידע על צומת שכנה שנשלף מ-dbo.intersection_neighbors
     int adjacent_intersection_id{0};
     std::string direction_from;   // "N","S","E","W" etc., may be empty
     int distance_m{0};
 };
 
-struct AdminUserRow {
+// מיקום גיאוגרפי של צומת — לחישוב GPS proximity
+struct IntersectionLocation {
+    int    id{0};            // מזהה הצומת — תואם ל-intersection_id ב-dbo.intersections
+    double latitude{0.0};   // קו רוחב (degrees) — שמור עם 7 ספרות עשרוניות
+    double longitude{0.0};  // קו אורך (degrees) — שמור עם 7 ספרות עשרוניות
+};
+
+struct AdminUserRow {// מידע על משתמש מנהל שנשלף מ-dbo.admin_users
     int user_id{0};
     std::string username;
     std::string role;        // "super_admin" or "regular_admin"
@@ -45,6 +52,11 @@ struct AdminUserRow {
 // On any connection or query error falls back to hardcoded defaults identical
 // to the ones in the Python server.
 std::vector<IntersectionRow> db_fetch_intersections();
+
+// שולפת קואורדינטות GPS של כל הצמתות מ-dbo.intersections.
+// משמשת ל-POST /emergency/locate לזיהוי הצומת הקרובה לרכב חירום.
+// מחזירה וקטור ריק אם ה-DB לא נגיש.
+std::vector<IntersectionLocation> db_fetch_all_intersection_locations();
 
 // Query dbo.intersection_lanes for one intersection (ordered by camera_index, lane_id).
 // Returns empty vector if DB is unreachable.

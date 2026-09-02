@@ -1,0 +1,15 @@
+{
+  "_comment": "Smart Traffic Controller – tunable runtime constants",
+
+  "controller": {
+    "step_sec":       0.5,
+    "min_green_sec":  3.0,
+    "max_green_sec":  45.0
+  },
+
+  "server": {
+    "cpp_action_sticky_sec":    10.0,
+    "manual_action_sticky_sec": 20.0,
+    "emergency_latch_sec":       8.0
+  }
+}

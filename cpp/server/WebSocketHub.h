@@ -1,5 +1,6 @@
 #pragma once
 
+// ספריות סטנדרטיות לתמיכה בריבוי threads, מנעולים ומבני נתונים
 #include <atomic>
 #include <memory>
 #include <mutex>
@@ -7,70 +8,69 @@
 #include <thread>
 #include <vector>
 
-// Keep winsock out of this header — included only in the .cpp.
-// We use a SOCKET-compatible alias (uintptr_t on both 32 and 64-bit Windows).
+// winsock לא נכלל כאן — נכלל רק ב-.cpp כדי למנוע התנגשויות עם windows.h
+// משתמשים ב-uintptr_t כ-alias ל-SOCKET שעובד גם על 32-bit וגם על 64-bit
 #include <cstdint>
 
+// מייצג לקוח WebSocket מחובר יחיד
 struct WSClient {
-    uintptr_t         sock;           // SOCKET value
-    int               intersection_id; // -1 = global (/ws/updates)
-    std::atomic<bool> alive;
-    std::mutex        send_mutex;     // serialise sends to this socket
+    uintptr_t         sock;            // מזהה ה-socket של הלקוח (SOCKET cast ל-uintptr_t)
+    int               intersection_id; // צומת עליו רשום הלקוח; -1 = גלובלי (/ws/updates)
+    std::atomic<bool> alive;           // האם החיבור עדיין פעיל
+    std::mutex        send_mutex;      // מונע שליחות מקבילות לאותו socket
 
     WSClient(uintptr_t s, int iid) : sock(s), intersection_id(iid), alive(true) {}
 };
 
 // ---------------------------------------------------------------------------
-// WebSocketHub
+// WebSocketHub — שרת WebSocket פנימי לפרוטוקול RFC-6455
 //
-// Listens on a dedicated TCP port.  Performs the RFC-6455 HTTP-upgrade
-// handshake, then keeps each connection alive in a detached thread.
+// מקשיב על פורט TCP ייעודי, מבצע HTTP-Upgrade handshake,
+// ושומר כל חיבור חי ב-thread נפרד.
 //
-// Routes supported:
-//   /ws/updates            → global subscriber  (intersection_id = -1)
-//   /ws/intersection/{id}  → per-intersection subscriber
+// נתיבים נתמכים:
+//   /ws/updates            → מנוי גלובלי (intersection_id = -1)
+//   /ws/intersection/{id}  → מנוי לצומת ספציפי
 //
-// Thread-safety: all public methods are safe to call from any thread.
+// בטיחות threads: כל המתודות הציבוריות בטוחות לקריאה מכל thread.
 // ---------------------------------------------------------------------------
 class WebSocketHub {
 public:
     explicit WebSocketHub(int port = 9001);
     ~WebSocketHub();
 
-    void start();   // launches background accept thread on port()
-    void stop();    // closes all connections; safe to call multiple times
+    void start();   // מפעיל את לולאת ה-accept ב-thread רקע על הפורט
+    void stop();    // סוגר את כל החיבורים; בטוח לקריאה מרובה
 
-    // Adopt an already-accepted TCP socket. Performs the RFC-6455 handshake
-    // and runs the per-client read loop. Use this when an external Router
-    // owns the listening socket (port unification). Safe to call from any
-    // thread; the socket lifecycle becomes owned by the hub.
+    // קולט socket שכבר קיבל accept חיצוני (מ-Router).
+    // מבצע RFC-6455 handshake ומפעיל לולאת קריאה ב-thread נפרד.
+    // משמש כאשר ה-Router מאחד פורטים ומעביר חיבורי WS ל-hub.
     void adopt_socket(uintptr_t raw_sock);
 
-    // Disable the built-in TCP listener. Used when an external Router will
-    // feed sockets via adopt_socket(). Must be called before start() — or
-    // start() can simply be skipped.
+    // משבית את ה-listener הפנימי — לשימוש כאשר Router חיצוני מזין sockets דרך adopt_socket().
+    // חייב להיקרא לפני start(), או שאפשר לוותר לחלוטין על start().
     void disable_own_listener() { own_listener_enabled_ = false; }
 
-    // Broadcast a JSON message to ALL connected clients.
+    // שידור הודעת JSON לכל הלקוחות המחוברים
     void broadcast_all(const std::string& json_msg);
 
-    // Broadcast only to clients subscribed to a specific intersection.
+    // שידור הודעת JSON רק ללקוחות הרשומים לצומת מסוים
     void broadcast_intersection(int intersection_id, const std::string& json_msg);
 
     int  port() const { return port_; }
 
 private:
-    int               port_;
-    uintptr_t         listen_sock_{~uintptr_t(0)}; // INVALID_SOCKET
-    std::atomic<bool> running_{false};
-    std::atomic<bool> own_listener_enabled_{true};
-    std::thread       accept_thread_;
+    int               port_;                          // הפורט שעליו ה-hub מקשיב
+    uintptr_t         listen_sock_{~uintptr_t(0)};    // socket ה-listen (INVALID_SOCKET בהתחלה)
+    std::atomic<bool> running_{false};                // האם ה-hub פעיל
+    std::atomic<bool> own_listener_enabled_{true};    // האם להפעיל listener פנימי
+    std::thread       accept_thread_;                 // thread לולאת ה-accept
 
-    std::mutex                              clients_mutex_;
-    std::vector<std::shared_ptr<WSClient>> clients_;
+    std::mutex                              clients_mutex_; // מגן על רשימת הלקוחות
+    std::vector<std::shared_ptr<WSClient>> clients_;        // רשימת כל הלקוחות המחוברים
 
-    void accept_loop();
-    void handle_client(uintptr_t sock);
-    bool perform_handshake(uintptr_t sock, int& out_intersection_id);
-    void broadcast_impl(int filter_iid, const std::string& msg);
+    void accept_loop();                                          // לולאת קבלת חיבורים חדשים
+    void handle_client(uintptr_t sock);                          // טיפול בלקוח בודד (פועל ב-thread נפרד)
+    bool perform_handshake(uintptr_t sock, int& out_intersection_id); // HTTP→WS upgrade
+    void broadcast_impl(int filter_iid, const std::string& msg); // מימוש השידור הפנימי
 };

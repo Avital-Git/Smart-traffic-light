@@ -36,6 +36,7 @@ public:
 private:
     void register_routes();
     void load_neighbor_topology();
+    void load_intersection_locations(); // טוענת קואורדינטות GPS של כל הצמתות מה-DB — נקראת בקונסטרקטור, משמשת ל-POST /emergency/locate
     void load_emergency_auth_config();
     bool validate_emergency_signal(const nlohmann::json& state_body, std::string& reason_out);
     nlohmann::json build_neighbor_summaries(int intersection_id);
@@ -89,6 +90,10 @@ private:
 
     std::unordered_map<int, std::vector<int>>       neighbor_topology_;
     std::unordered_map<int, std::vector<NeighborRow>> neighbor_topology_full_;
+
+    // מטמון מיקומי GPS: intersection_id → {latitude, longitude}
+    // נטענת פעם אחת בהפעלה, משמשת ל-POST /emergency/locate לחישוב Haversine
+    std::unordered_map<int, std::pair<double, double>> intersection_locations_; // מפה מ-id צומת לזוג קואורדינטות (lat,lon)
 
     std::mutex emergency_mutex_;
     std::unordered_map<std::string, std::string> emergency_keys_;

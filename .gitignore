@@ -1,10 +1,45 @@
-# OS / Editor
+# OS
 .DS_Store
 Thumbs.db
-.vscode/
+Desktop.ini
+$RECYCLE.BIN/
 
-# Logs
+# Editor / local workspace state
+.vscode/
+.vscode/**
+.idea/
+*.swp
+*.swo
+*.tmp
+
+# Local environment files
+.env
+.env.local
+.env.*
+!.env.example
+!.env.production.example
+
+# Logs and chat transcripts
 *.log
+*.log.*
+logs/
+log/
+chat/
+chats/
+conversations/
+transcripts/
+*.chat
+*.conversation
+*.transcript
+*.md.html
+
+# Copilot / AI assistant local artifacts
+.copilot/
+.github/copilot/
+.ai/
+assistant/
+agent/
+agent-output/
 
 # Python
 __pycache__/
@@ -13,44 +48,113 @@ __pycache__/
 *.pyd
 .venv/
 venv/
+env/
+.python-version
+pip-wheel-metadata/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+coverage.xml
+htmlcov/
 
-# Node
+# Node / React
 node_modules/
 client/node_modules/
+client/build/
+.npm/
+.nyc_output/
+coverage/
+*.tsbuildinfo
+*.hot-update.js
+*.hot-update.js.map
 
-# C/C++ build outputs
+# C/C++ / Visual Studio
 build/
 cpp/build/
 Debug/
 Release/
 *.obj
+*.o
+*.out
+*.exe
+*.dll
+*.lib
+*.so
+*.dylib
 *.pdb
 *.ilk
-*.exe
+*.idb
 *.tlog
-
-# CMake
+*.lastbuildstate
+*.vcxproj.user
+*.aps
+*.pch
+*.ipch/
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
-
-# Misc generated artifacts
-*.hot-update.js
-*.hot-update.js.map
-
-# Visual Studio
+Makefile
+*.sln.docstates
 .vs/
 cpp/.vs/
 
-# Client build output
-client/build/
-
-# Python cache
-*.pyc
+# Python generated artifacts in project
 python/__pycache__/
+python/**/*.pyc
 
-# Word/extract artifacts
+# Project generated data
+reports/*.json
+reports/*.txt
+!reports/.gitkeep
+logs/
+*.zip
+*.tar
+*.gz
+*.rar
+*.7z
+
+# Office / extracted / media artifacts
 .docx_extract/
-
-# PDF files
 *.pdf
+*.docx
+*.pptx
+*.xlsx
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+
+# Backup / misc generated outputs
+_backup/
+backup/
+backups/
+*.bak
+*.orig
+*.rej
+
+# Model / datasets (if generated locally)
+yolov8n.pt
+*.weights
+*.onnx
+*.pt
+*.pth
+
+# Local DB / cache
+*.sqlite3
+*.db
+*.sqlite
+*.ldb
+
+# GitHub-specific local noise
+.github/workflows/*.log
+.github/ISSUE_TEMPLATE/
+
+# Keep examples tracked
+!*.example
+!*.template
+!**/.gitkeep

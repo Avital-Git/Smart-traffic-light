@@ -1,17 +1,20 @@
 #include "Database.h"
 
-#include <windows.h>
-#include <sql.h>
-#include <sqlext.h>
+// ─── ספריות Windows ו-ODBC לגישה ל-SQL Server ───────────────────────────────
+#include <windows.h>  // ממשק Windows API (WideCharToMultiByte וכו')
+#include <sql.h>      // סוגי נתונים ופונקציות ODBC בסיסיות
+#include <sqlext.h>   // הרחבות ODBC (SQLDriverConnect, SQLBindParameter וכו')
 
-#include <algorithm>
-#include <cstdlib>
-#include <iostream>
-#include <string>
-#include <vector>
+// ─── ספריות סטנדרטיות של C++ ────────────────────────────────────────────────
+#include <algorithm>  // std::find לחיפוש ברשימות
+#include <cstdlib>    // std::getenv לקריאת משתני סביבה
+#include <iostream>   // std::cerr להדפסת שגיאות
+#include <string>     // std::string
+#include <vector>     // std::vector לרשימות דינמיות
 
 // ---------------------------------------------------------------------------
-// Hardcoded fallback (mirrors Python DEFAULT_INTERSECTIONS)
+// נתוני ברירת מחדל — נטענים כשאין חיבור ל-SQL Server
+// מראה את 4 הצמתות הקבועות (זהה ל-DEFAULT_INTERSECTIONS בפייתון)
 // ---------------------------------------------------------------------------
 static const std::vector<IntersectionRow> DEFAULTS = {
     {1, "J-001", "\xd7\xa6\xd7\x95\xd7\x9e\xd7\xaa \xd7\x9e\xd7\xa8\xd7\x9b\xd7\x96\xd7\x99",          "\xd7\x91\xd7\x90\xd7\xa8 \xd7\xa9\xd7\x91\xd7\xa2"},
@@ -21,47 +24,52 @@ static const std::vector<IntersectionRow> DEFAULTS = {
 };
 
 // ---------------------------------------------------------------------------
-// Helpers
+// פונקציות עזר פנימיות — אינן נחשפות מחוץ לקובץ זה
 // ---------------------------------------------------------------------------
 
+// קורא משתנה סביבה לפי שם; אם לא קיים — מחזיר את ערך ברירת המחדל
 static std::string env_or(const char* name, const char* def)
 {
     const char* v = std::getenv(name);
     return (v && v[0]) ? v : def;
 }
 
+// מבנה המכיל את פרטי החיבור ל-SQL Server
 struct DbConnConfig {
-    std::string driver;
-    std::string server;
-    std::string database;
-    std::string user;
-    std::string password;
+    std::string driver;   // שם ה-ODBC driver
+    std::string server;   // שם / כתובת השרת (ברירת מחדל: .\SQLEXPRESS)
+    std::string database; // שם מסד הנתונים
+    std::string user;     // שם משתמש SQL (ריק = Windows Authentication)
+    std::string password; // סיסמת SQL
 };
 
-// Keep this in lockstep with python/db_intersections.py.
+// בונה את פרטי החיבור ממשתני סביבה (SQL_SERVER, SQL_DATABASE, SQL_USER, SQL_PASSWORD)
+// חייב להיות זהה לקוד ב-python/db_intersections.py
 static DbConnConfig resolve_db_conn_config()
 {
     DbConnConfig cfg;
     cfg.driver   = "ODBC Driver 17 for SQL Server";
-    cfg.server   = env_or("SQL_SERVER",   R"(.\SQLEXPRESS)");
-    cfg.database = env_or("SQL_DATABASE", "smart_traffic");
-    cfg.user     = env_or("SQL_USER",     "");
+    cfg.server   = env_or("SQL_SERVER",   R"(.\SQLEXPRESS)");  // ברירת מחדל: SQL Server Express מקומי
+    cfg.database = env_or("SQL_DATABASE", "smart_traffic");    // שם ה-DB
+    cfg.user     = env_or("SQL_USER",     "");                 // ריק = Windows Auth
     cfg.password = env_or("SQL_PASSWORD", "");
     return cfg;
 }
 
-// Convert a null-terminated wide string to UTF-8.
+// ממיר מחרוזת Unicode רחבה (WCHAR*) ל-UTF-8 רגיל
+// ind == SQL_NULL_DATA פירושו שהשדה ריק ב-DB
 static std::string wstr_to_utf8(const WCHAR* wstr, SQLLEN ind)
 {
     if (ind == SQL_NULL_DATA || wstr == nullptr || wstr[0] == L'\0')
-        return "";
-    int sz = WideCharToMultiByte(CP_UTF8, 0, wstr, -1, nullptr, 0, nullptr, nullptr);
+        return "";  // שדה NULL או ריק — מחזיר מחרוזת ריקה
+    int sz = WideCharToMultiByte(CP_UTF8, 0, wstr, -1, nullptr, 0, nullptr, nullptr);  // מחשב גודל מחרוזת UTF-8
     if (sz <= 1) return "";
-    std::string out(sz - 1, '\0');
-    WideCharToMultiByte(CP_UTF8, 0, wstr, -1, &out[0], sz, nullptr, nullptr);
+    std::string out(sz - 1, '\0');  // מקצה בафер בגודל הנכון
+    WideCharToMultiByte(CP_UTF8, 0, wstr, -1, &out[0], sz, nullptr, nullptr);  // ממיר בפועל
     return out;
 }
 
+// בונה את מחרוזת החיבור ODBC המלאה שתועבר ל-SQLDriverConnect
 static std::string build_conn_str()
 {
     const DbConnConfig cfg = resolve_db_conn_config();
@@ -72,21 +80,25 @@ static std::string build_conn_str()
     if (!cfg.user.empty())
         s += "UID=" + cfg.user + ";PWD=" + cfg.password + ";";
     else
-        s += "Trusted_Connection=yes;";
+        s += "Trusted_Connection=yes;";  // אימות Windows — לא צריך שם משתמש/סיסמה
     return s;
 }
 
+// פותח חיבור ODBC ל-SQL Server
+// מחזיר true אם החיבור הצליח; false + error_out עם תיאור השגיאה אם נכשל
 static bool open_sql_connection(SQLHENV& env, SQLHDBC& dbc, std::string* error_out = nullptr)
 {
-    env = SQL_NULL_HENV;
-    dbc = SQL_NULL_HDBC;
+    env = SQL_NULL_HENV;  // איפוס מאגר סביבה
+    dbc = SQL_NULL_HDBC;  // איפוס מאגר חיבור
 
+    // שלב 1: הקצאת מאגר סביבת ODBC
     if (SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &env) != SQL_SUCCESS) {
         if (error_out) *error_out = "SQLAllocHandle(SQL_HANDLE_ENV) failed";
         return false;
     }
-    SQLSetEnvAttr(env, SQL_ATTR_ODBC_VERSION, (SQLPOINTER)SQL_OV_ODBC3, 0);
+    SQLSetEnvAttr(env, SQL_ATTR_ODBC_VERSION, (SQLPOINTER)SQL_OV_ODBC3, 0);  // הגדרת גרסת ODBC 3
 
+    // שלב 2: הקצאת מאגר חיבור
     if (SQLAllocHandle(SQL_HANDLE_DBC, env, &dbc) != SQL_SUCCESS) {
         if (error_out) *error_out = "SQLAllocHandle(SQL_HANDLE_DBC) failed";
         SQLFreeHandle(SQL_HANDLE_ENV, env);
@@ -94,15 +106,17 @@ static bool open_sql_connection(SQLHENV& env, SQLHDBC& dbc, std::string* error_o
         return false;
     }
 
+    // שלב 3: פתיחת החיבור בפועל עם מחרוזת ה-ODBC
     std::string cs = build_conn_str();
     SQLRETURN rc = SQLDriverConnectA(
         dbc, NULL,
         reinterpret_cast<SQLCHAR*>(const_cast<char*>(cs.c_str())),
         static_cast<SQLSMALLINT>(cs.size()),
         NULL, 0, NULL,
-        SQL_DRIVER_NOPROMPT
+        SQL_DRIVER_NOPROMPT  // לא להציג חלון dialog — עבודה בשקט
     );
     if (rc != SQL_SUCCESS && rc != SQL_SUCCESS_WITH_INFO) {
+        // החיבור נכשל — בונה הודעת שגיאה מפורטת
         const DbConnConfig cfg = resolve_db_conn_config();
         const char* auth = cfg.user.empty() ? "Trusted_Connection=yes" : "UID/PWD";
         if (error_out) {
@@ -118,24 +132,27 @@ static bool open_sql_connection(SQLHENV& env, SQLHDBC& dbc, std::string* error_o
         return false;
     }
 
-    return true;
+    return true;  // החיבור נפתח בהצלחה
 }
 
+// סוגר חיבור ODBC ומשחרר את כל המשאבים שהוקצו
 static void close_sql_connection(SQLHENV env, SQLHDBC dbc)
 {
     if (dbc != SQL_NULL_HDBC) {
-        SQLDisconnect(dbc);
-        SQLFreeHandle(SQL_HANDLE_DBC, dbc);
+        SQLDisconnect(dbc);              // ניתוק מה-DB
+        SQLFreeHandle(SQL_HANDLE_DBC, dbc);  // שחרור מאגר החיבור
     }
     if (env != SQL_NULL_HENV) {
-        SQLFreeHandle(SQL_HANDLE_ENV, env);
+        SQLFreeHandle(SQL_HANDLE_ENV, env);  // שחרור מאגר הסביבה
     }
 }
 
 // ---------------------------------------------------------------------------
-// Public API
+// API ציבורי — הפונקציות האלה נקראות מ-TrafficServer.cpp
 // ---------------------------------------------------------------------------
 
+// שולפת את כל הצמתות מ-dbo.intersections
+// אם אין חיבור ל-DB — מחזירה את DEFAULTS (4 צמתות קבועות)
 std::vector<IntersectionRow> db_fetch_intersections()
 {
     SQLHENV env  = SQL_NULL_HENV;
@@ -146,16 +163,16 @@ std::vector<IntersectionRow> db_fetch_intersections()
     if (!open_sql_connection(env, dbc, &db_error)) {
         std::cerr << "[DB] Connection to SQL Server failed (using Python-compatible SQL_* vars): "
                   << db_error << " — using defaults\n";
-        return DEFAULTS;
+        return DEFAULTS;  // חיבור נכשל — מחזיר נתוני ברירת מחדל
     }
 
-    // Allocate statement
+    // הקצאת statement לביצוע השאילתה
     if (SQLAllocHandle(SQL_HANDLE_STMT, dbc, &stmt) != SQL_SUCCESS) {
         close_sql_connection(env, dbc);
         return DEFAULTS;
     }
 
-    // Execute query
+    // שאילתת SQL — שולפת מזהה, קוד, שם ועיר של כל הצמתות לפי סדר
     const char* sql =
         "SELECT intersection_id, intersection_code, name, city "
         "FROM dbo.intersections "
@@ -170,45 +187,47 @@ std::vector<IntersectionRow> db_fetch_intersections()
         return DEFAULTS;
     }
 
-    // Fetch rows
+    // עוברים על כל שורה שהוחזרה ובונים אובייקט IntersectionRow לכל אחת
     std::vector<IntersectionRow> results;
     while (SQLFetch(stmt) == SQL_SUCCESS) {
         IntersectionRow row;
 
-        // Column 1: intersection_id (integer)
+        // עמודה 1: מזהה מספרי של הצומת
         SQLINTEGER id_val = 0;
         SQLLEN     id_ind = 0;
         SQLGetData(stmt, 1, SQL_C_LONG, &id_val, 0, &id_ind);
         row.id = static_cast<int>(id_val);
 
-        // Columns 2-4: wide strings -> UTF-8
+        // עמודות 2-4: מחרוזות Unicode — ממירים ל-UTF-8
         WCHAR  buf[512] = {};
         SQLLEN ind      = 0;
 
         SQLGetData(stmt, 2, SQL_C_WCHAR, buf, sizeof(buf), &ind);
         row.code = (ind != SQL_NULL_DATA && buf[0]) ? wstr_to_utf8(buf, ind)
-                                                    : ("J-" + std::to_string(id_val));
+                                                    : ("J-" + std::to_string(id_val));  // קוד NULL — יוצרים קוד אוטומטי
 
         SQLGetData(stmt, 3, SQL_C_WCHAR, buf, sizeof(buf), &ind);
-        row.name = wstr_to_utf8(buf, ind);
+        row.name = wstr_to_utf8(buf, ind);  // שם הצומת בעברית
 
         SQLGetData(stmt, 4, SQL_C_WCHAR, buf, sizeof(buf), &ind);
-        row.city = wstr_to_utf8(buf, ind);
+        row.city = wstr_to_utf8(buf, ind);  // שם העיר
 
         results.push_back(row);
     }
 
-    // Cleanup
+    // ניקוי — שחרור statement וסגירת חיבור
     SQLFreeHandle(SQL_HANDLE_STMT, stmt);
     close_sql_connection(env, dbc);
 
-    return results.empty() ? DEFAULTS : results;
+    return results.empty() ? DEFAULTS : results;  // אם לא הוחזרו שורות — ברירת מחדל
 }
 
 // ---------------------------------------------------------------------------
-// db_fetch_lanes
+// שליפת נתיבי נסיעה (lanes) של צומת מסוים
 // ---------------------------------------------------------------------------
 
+// מחזירה את כל הנתיבים של צומת לפי intersection_id
+// כל נתיב מכיל: lane_id, camera_index, כיוון (N/S/E/W) ותיאור אופציונלי
 std::vector<LaneRow> db_fetch_lanes(int intersection_id)
 {
     SQLHENV env   = SQL_NULL_HENV;
@@ -218,14 +237,14 @@ std::vector<LaneRow> db_fetch_lanes(int intersection_id)
 
     if (!open_sql_connection(env, dbc, &db_error)) {
         std::cerr << "[DB] db_fetch_lanes connection failed: " << db_error << "\n";
-        return {};
+        return {};  // חיבור נכשל — מחרוזת ריקה
     }
 
     if (SQLAllocHandle(SQL_HANDLE_STMT, dbc, &stmt) != SQL_SUCCESS) {
         close_sql_connection(env, dbc); return {};
     }
 
-    // Parameterised query
+    // שאילתה מוכנה מראש עם פרמטר (? = intersection_id) — מונעת SQL Injection
     const char* sql =
         "SELECT lane_id, camera_index, direction, description "
         "FROM dbo.intersection_lanes "
@@ -235,7 +254,7 @@ std::vector<LaneRow> db_fetch_lanes(int intersection_id)
     SQLPrepareA(stmt, reinterpret_cast<SQLCHAR*>(const_cast<char*>(sql)), SQL_NTS);
     SQLINTEGER param = static_cast<SQLINTEGER>(intersection_id);
     SQLLEN     param_ind = 0;
-    SQLBindParameter(stmt, 1, SQL_PARAM_INPUT, SQL_C_LONG, SQL_INTEGER, 0, 0, &param, 0, &param_ind);
+    SQLBindParameter(stmt, 1, SQL_PARAM_INPUT, SQL_C_LONG, SQL_INTEGER, 0, 0, &param, 0, &param_ind);  // קושר את intersection_id לפרמטר ?
 
     std::vector<LaneRow> results;
     if (SQLExecute(stmt) == SQL_SUCCESS) {
@@ -267,9 +286,10 @@ std::vector<LaneRow> db_fetch_lanes(int intersection_id)
 }
 
 // ---------------------------------------------------------------------------
-// db_fetch_conflicts
+// שליפת קונפליקטים (נתיבים שאסור להם לפעול במקביל) של צומת מסוים
 // ---------------------------------------------------------------------------
 
+// מחזירה רשימת זוגות נתיבים מתנגשים — לפי סדר יורד של תאריך יצירה
 std::vector<ConflictRow> db_fetch_conflicts(int intersection_id)
 {
     SQLHENV env   = SQL_NULL_HENV;
@@ -329,6 +349,8 @@ std::vector<ConflictRow> db_fetch_conflicts(int intersection_id)
     return results;
 }
 
+// בודק אם צומת עם המזהה הנתון קיים בטבלת dbo.intersections
+// משמש לפני UPDATE/DELETE כדי לדעת להחזיר 404 או 200
 bool db_intersection_exists(int intersection_id)
 {
     SQLHENV env = SQL_NULL_HENV;
@@ -357,15 +379,17 @@ bool db_intersection_exists(int intersection_id)
     return found;
 }
 
+// מוסיף צומת חדש לטבלת dbo.intersections
+// מחזיר true אם ההוספה הצליחה; false + error_out עם תיאור השגיאה אם נכשל
 bool db_insert_intersection(
     const std::string& code,
     const std::string& name,
     double latitude,
     double longitude,
     int num_cameras,
-    const std::optional<std::string>& city,
-    const std::optional<std::string>& region,
-    const std::optional<std::string>& description,
+    const std::optional<std::string>& city,      // אופציונלי — עיר
+    const std::optional<std::string>& region,    // אופציונלי — אזור
+    const std::optional<std::string>& description,  // אופציונלי — תיאור חופשי
     std::string& error_out)
 {
     SQLHENV env = SQL_NULL_HENV;
@@ -424,6 +448,8 @@ bool db_insert_intersection(
     return true;
 }
 
+// מעדכן שדות של צומת קיים — רק השדות שהועברו (optional שאינו ריק)
+// found_out = false אם הצומת לא קיים (יגרום להחזרת HTTP 404)
 bool db_update_intersection(
     int intersection_id,
     const std::optional<std::string>& name,
@@ -509,6 +535,8 @@ bool db_update_intersection(
     return true;
 }
 
+// שולפת את טופולוגיית השכנויות כ-map פשוט: intersection_id → רשימת שכנים
+// משמשת לקואורדינציה בין צמתות סמוכים
 std::unordered_map<int, std::vector<int>> db_fetch_neighbor_topology()
 {
     SQLHENV env = SQL_NULL_HENV;
@@ -551,6 +579,8 @@ std::unordered_map<int, std::vector<int>> db_fetch_neighbor_topology()
     return topology;
 }
 
+// שולפת טופולוגיית שכנויות מלאה — כולל כיוון ומרחק לכל שכן
+// משמשת לחישוב כיוון קירוב של רכב חירום יחסית לצומת
 std::unordered_map<int, std::vector<NeighborRow>> db_fetch_neighbor_full_topology()
 {
     SQLHENV env = SQL_NULL_HENV;
@@ -602,9 +632,57 @@ std::unordered_map<int, std::vector<NeighborRow>> db_fetch_neighbor_full_topolog
 // (CRUD appended below)
 
 // ---------------------------------------------------------------------------
-// Lane CRUD
+// Intersection GPS locations
 // ---------------------------------------------------------------------------
 
+std::vector<IntersectionLocation> db_fetch_all_intersection_locations()// שולפת קואורדינטות GPS של כל הצמתות מ-dbo.intersections
+{
+    SQLHENV  env  = SQL_NULL_HENV;  // מאגר סביבת ODBC
+    SQLHDBC  dbc  = SQL_NULL_HDBC;  // מאגר חיבור ODBC
+    SQLHSTMT stmt = SQL_NULL_HSTMT; // מאגר שאילתה ODBC
+
+    if (!open_sql_connection(env, dbc)) return {};// אם החיבור נכשל — מחזירה וקטור ריק
+    if (SQLAllocHandle(SQL_HANDLE_STMT, dbc, &stmt) != SQL_SUCCESS) {// אם הקצאת מאגר השאילתה נכשלה
+        close_sql_connection(env, dbc);// סוגרת את החיבור
+        return {};// מחזירה וקטור ריק
+    }
+
+    const char* sql =// שאילתת SQL לשליפת מזהה, קו רוחב וקו אורך של כל הצמתות
+        "SELECT intersection_id, latitude, longitude "
+        "FROM dbo.intersections "
+        "ORDER BY intersection_id";
+
+    if (SQLExecDirectA(stmt,// מריצה את השאילתה ישירות על ה-statement
+            reinterpret_cast<SQLCHAR*>(const_cast<char*>(sql)),
+            SQL_NTS) != SQL_SUCCESS) {// אם השאילתה נכשלה
+        SQLFreeHandle(SQL_HANDLE_STMT, stmt);// משחררת את מאגר השאילתה
+        close_sql_connection(env, dbc);// סוגרת את החיבור
+        return {};// מחזירה וקטור ריק
+    }
+
+    std::vector<IntersectionLocation> results;// וקטור לאחסון תוצאות השליפה
+    while (SQLFetch(stmt) == SQL_SUCCESS) {// עוברת על כל שורה שהוחזרה מה-DB
+        IntersectionLocation loc;// אובייקט זמני לאחסון נתוני שורה אחת
+        SQLINTEGER id_val = 0;  // ערך עמודת intersection_id
+        SQLDOUBLE  lat = 0.0, lon = 0.0;// ערכי עמודות latitude ו-longitude
+        SQLLEN     ind = 0;     // אינדיקטור — מצביע על NULL או אורך הנתון
+
+        SQLGetData(stmt, 1, SQL_C_LONG,   &id_val, 0,       &ind); loc.id        = static_cast<int>(id_val);// שולפת את מזהה הצומת ממשתנה id_val ושומרת ב-loc.id
+        SQLGetData(stmt, 2, SQL_C_DOUBLE, &lat,    sizeof(lat), &ind); loc.latitude  = lat;// שולפת קו רוחב ושומרת ב-loc.latitude
+        SQLGetData(stmt, 3, SQL_C_DOUBLE, &lon,    sizeof(lon), &ind); loc.longitude = lon;// שולפת קו אורך ושומרת ב-loc.longitude
+        results.push_back(loc);// מוסיפה את האובייקט לוקטור התוצאות
+    }
+
+    SQLFreeHandle(SQL_HANDLE_STMT, stmt);// משחררת את מאגר השאילתה
+    close_sql_connection(env, dbc);// סוגרת את חיבור ה-ODBC
+    return results;// מחזירה את רשימת המיקומים שנשלפו
+}
+
+// ---------------------------------------------------------------------------
+// CRUD לנתיבים — הוספה, עדכון, מחיקה של שורות ב-dbo.intersection_lanes
+// ---------------------------------------------------------------------------
+
+// מוסיף נתיב חדש לצומת — camera_index הוא מספר המצלמה, direction הוא N/S/E/W
 bool db_insert_lane(
     int intersection_id,
     int camera_index,
@@ -653,6 +731,8 @@ bool db_insert_lane(
     return true;
 }
 
+// עזר פנימי — בודק אם נתיב מסוים שייך לצומת מסוים
+// משמש לפני UPDATE/DELETE כדי לוודא שהנתיב קיים
 static bool lane_exists_in_intersection(SQLHDBC dbc, int intersection_id, int lane_id)
 {
     SQLHSTMT stmt = SQL_NULL_HSTMT;
@@ -675,6 +755,8 @@ static bool lane_exists_in_intersection(SQLHDBC dbc, int intersection_id, int la
     return found;
 }
 
+// מעדכן כיוון ו/או תיאור של נתיב קיים
+// found_out = false אם הנתיב לא קיים בצומת זה
 bool db_update_lane(
     int intersection_id,
     int lane_id,
@@ -740,6 +822,7 @@ bool db_update_lane(
     return true;
 }
 
+// מוחק נתיב מהצומת — אם לא קיים, found_out = false (HTTP 404)
 bool db_delete_lane(
     int intersection_id,
     int lane_id,
@@ -786,9 +869,11 @@ bool db_delete_lane(
 }
 
 // ---------------------------------------------------------------------------
-// Conflict CRUD
+// CRUD לקונפליקטים — ניהול זוגות נתיבים שאסורים להם לפעול במקביל
 // ---------------------------------------------------------------------------
 
+// מוסיף קונפליקט חדש בין שני נתיבים
+// בודק שהנתיבים קיימים ושאין כפילות לפני ההכנסה
 bool db_insert_conflict(
     int intersection_id,
     int lane_id_1,
@@ -868,6 +953,8 @@ bool db_insert_conflict(
     return true;
 }
 
+// מוחק קונפליקט לפי conflict_id ו-intersection_id
+// found_out = false אם הקונפליקט לא קיים
 bool db_delete_conflict(
     int intersection_id,
     int conflict_id,
@@ -930,9 +1017,11 @@ bool db_delete_conflict(
 }
 
 // ---------------------------------------------------------------------------
-// Admin Users
+// ניהול משתמשי אדמין — CRUD על טבלת dbo.admin_users
+// כל המשתמשים מאוחסנים עם password_hash + salt (לא סיסמה בטקסט ברור)
 // ---------------------------------------------------------------------------
 
+// מחזירה רשימת כל משתמשי האדמין (ללא סיסמאות — רק user_id, username, role, תאריכים)
 std::vector<AdminUserRow> db_list_admin_users()
 {
     SQLHENV env = SQL_NULL_HENV;
@@ -987,6 +1076,8 @@ std::vector<AdminUserRow> db_list_admin_users()
     return rows;
 }
 
+// שולפת את hash הסיסמה וה-salt של משתמש לפי שם משתמש
+// משמשת בלוגין — מחשבים SHA-256(salt + password) ומשווים ל-hash
 bool db_get_admin_credentials(
     const std::string& username,
     std::string& password_hash_out,
@@ -1034,6 +1125,8 @@ bool db_get_admin_credentials(
     return found;
 }
 
+// מעדכן את שדה last_login ל-SYSUTCDATETIME() (זמן UTC נוכחי)
+// נקרא מיד אחרי אימות מוצלח של משתמש
 bool db_touch_admin_last_login(const std::string& username)
 {
     SQLHENV env = SQL_NULL_HENV;
@@ -1069,6 +1162,9 @@ bool db_touch_admin_last_login(const std::string& username)
     return false;
 }
 
+// מוסיף משתמש אדמין חדש לטבלה
+// בודק כפילות username לפני ההכנסה
+// role מוגבל ל-'super_admin' או 'regular_admin' בלבד (הגנה מ-injection בשדה role)
 bool db_insert_admin_user(
     const std::string& username,
     const std::string& password_hash,
@@ -1178,6 +1274,8 @@ bool db_insert_admin_user(
     return true;
 }
 
+// מחזירה את ה-role של משתמש (super_admin / regular_admin)
+// משמשת לאחר הלוגין לבדיקת הרשאות
 bool db_get_admin_role(
     const std::string& username,
     std::string& role_out,
@@ -1218,6 +1316,8 @@ bool db_get_admin_role(
     return true;
 }
 
+// מוחק משתמש אדמין לפי user_id
+// found_out = false אם המשתמש לא קיים
 bool db_delete_admin_user(
     int user_id,
     bool& found_out,
@@ -1276,6 +1376,7 @@ bool db_delete_admin_user(
     return true;
 }
 
+// מעדכן סיסמה של משתמש — שומר hash + salt חדשים (לא הסיסמה עצמה)
 bool db_update_admin_user_password(
     int user_id,
     const std::string& password_hash,
@@ -1347,6 +1448,7 @@ bool db_update_admin_user_password(
     return true;
 }
 
+// מחפש username לפי user_id — משמש להצגת שם בממשק
 bool db_get_admin_username_by_id(
     int user_id,
     std::string& username_out,
@@ -1386,6 +1488,8 @@ bool db_get_admin_username_by_id(
     return true;
 }
 
+// סופר כמה משתמשי אדמין קיימים במערכת
+// משמש לבדיקה אם צריך ליצור משתמש ראשון (bootstrap)
 bool db_count_admin_users(int& count_out, std::string& error_out)
 {
     count_out = 0;

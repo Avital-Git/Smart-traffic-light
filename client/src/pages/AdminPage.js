@@ -398,7 +398,7 @@ export function AdminPage() {
   }
 
   function formatAdminDate(value) {
-    if (!value) return 'Γאפ';
+    if (!value) return '—';
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return value;
     return d.toLocaleString('he-IL');
@@ -581,7 +581,7 @@ export function AdminPage() {
       return;
     }
 
-    setMessage(`הפעלה ידנית בוצעה לפי נתיבים [${manualSelectedLanes.join(', ')}] Γזע Phase${mappedPhase}.`);
+    setMessage(`הפעלה ידנית בוצעה לפי נתיבים [${manualSelectedLanes.join(', ')}] → Phase${mappedPhase}.`);
   }
 
   async function reloadLanes() {
@@ -804,7 +804,7 @@ export function AdminPage() {
           <h2>חשבון מנהל</h2>
           <p>מחובר כעת ומאומת מול השרת.</p>
           <p className="muted" style={{ marginBottom: 8 }}>
-            משתמש: <strong>{currentAdminUsername || 'Γאפ'}</strong>
+            משתמש: <strong>{currentAdminUsername || '—'}</strong>
           </p>
           <button className="button" onClick={handleLogout}>התנתק</button>
         </div>
@@ -870,10 +870,10 @@ export function AdminPage() {
                   }}
                   title={isBlocked && disabledPair ? `נתיבים ${disabledPair[0]} ו-${disabledPair[1]} לא יכולים להידלק יחד` : ''}
                 >
-                  <strong>Lane #{lane.lane_id}</strong> ┬╖ {lane.direction}
+                  <strong>Lane #{lane.lane_id}</strong> · {lane.direction}
                   {isBlocked && disabledPair && (
                     <span style={{ fontSize: 12, marginInlineStart: 6, color: '#dc2626' }}>
-                      (חסום: {disabledPair[0]}Γזפ{disabledPair[1]})
+                      (חסום: {disabledPair[0]} ↔ {disabledPair[1]})
                     </span>
                   )}
                 </button>
@@ -999,7 +999,7 @@ export function AdminPage() {
               const isEditing = editingLaneId === lane.lane_id;
               return (
                 <div key={lane.lane_id} className="neighbor-card">
-                  <div><strong>Lane #{lane.lane_id}</strong> ┬╖ camera_index={lane.camera_index}</div>
+                  <div><strong>Lane #{lane.lane_id}</strong> · camera_index={lane.camera_index}</div>
 
                   {isEditing ? (
                     <>
@@ -1032,7 +1032,7 @@ export function AdminPage() {
                   ) : (
                     <>
                       <div>direction: <strong>{lane.direction}</strong></div>
-                      <div>description: {lane.description || 'Γאפ'}</div>
+                      <div>description: {lane.description || '—'}</div>
                       <div style={{ display: 'flex', gap: 8 }}>
                         <button className="button" type="button" onClick={() => startEditLane(lane)}>ערוך</button>
                         <button className="button danger" type="button" onClick={() => handleDeleteLane(lane.lane_id)}>מחק</button>
@@ -1058,7 +1058,7 @@ export function AdminPage() {
             {(lanes || []).length === 0 && <option value="">אין נתיבים זמינים</option>}
             {(lanes || []).map((lane) => (
               <option key={lane.lane_id} value={lane.lane_id}>
-                Lane #{lane.lane_id} ┬╖ cam {lane.camera_index} ┬╖ {lane.direction}
+                Lane #{lane.lane_id} · cam {lane.camera_index} · {lane.direction}
               </option>
             ))}
           </select>
@@ -1074,7 +1074,7 @@ export function AdminPage() {
 
           {emergencyActive && (
             <div className="badge badge-danger" style={{ marginTop: 10 }}>
-              חירום פעיל Γאפ ינוקה אוטומטית תוך 30 שניות
+              חירום פעיל — ינוקה אוטומטית תוך 30 שניות
             </div>
           )}
         </div>
@@ -1099,7 +1099,7 @@ export function AdminPage() {
                 <option value="">בחר נתיב 1</option>
                 {(lanes || []).map((lane) => (
                   <option key={lane.lane_id} value={lane.lane_id}>
-                    Lane #{lane.lane_id} ┬╖ {lane.direction}
+                    Lane #{lane.lane_id} · {lane.direction}
                   </option>
                 ))}
               </select>
@@ -1111,7 +1111,7 @@ export function AdminPage() {
                 <option value="">בחר נתיב 2</option>
                 {(lanes || []).map((lane) => (
                   <option key={lane.lane_id} value={lane.lane_id}>
-                    Lane #{lane.lane_id} ┬╖ {lane.direction}
+                    Lane #{lane.lane_id} · {lane.direction}
                   </option>
                 ))}
               </select>
@@ -1137,7 +1137,7 @@ export function AdminPage() {
                 <div>
                   <strong>Lane #{conflict.lane_id_1}</strong> ({getLaneDirection(conflict.lane_id_1)})
                   {' '}
-                  Γזפ
+                  ↔
                   {' '}
                   <strong>Lane #{conflict.lane_id_2}</strong> ({getLaneDirection(conflict.lane_id_2)})
                 </div>
@@ -1145,7 +1145,7 @@ export function AdminPage() {
                   סוג: <strong>{conflict.conflict_type}</strong>
                   {conflict.created_at && (
                     <>
-                      {' '} ┬╖ יוצר: {new Date(conflict.created_at).toLocaleString('he-IL')}
+                      {' '} · יוצר: {new Date(conflict.created_at).toLocaleString('he-IL')}
                     </>
                   )}
                 </div>

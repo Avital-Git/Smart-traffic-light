@@ -38,7 +38,12 @@ const mockIntersections = [
   { id: 4, code: 'J-004', name: 'צומת דרומי', city: 'באר שבע' }
 ];
 
-function laneToSignalColor(currentPhase, laneId) {
+function laneToSignalColor(currentPhase, laneId, emergencyActive, emergencyLaneId) {
+  // בחירום: רק נתיב החירום ומי שבאותה פאזה (לא סותרים) ירוק — כל השאר אדום
+  if (emergencyActive && emergencyLaneId != null) {
+    return (laneId % 2) === (emergencyLaneId % 2) ? 'GREEN' : 'RED';
+  }
+
   if (currentPhase == null || currentPhase === 'Hold') {
     return 'RED';
   }
@@ -210,13 +215,18 @@ function mapStateToStatus(state, action, intersectionId, layout) {
     totalQueue,
     avgWaitSec,
     manualOverrideEnabled: false,
-    emergencyActive: Boolean(state.emergency_signal?.active),
-    emergencyLaneId: state.emergency_signal?.lane_id ?? null,
+    emergencyActive: Boolean(state.emergency_signal?.active) || action?.reason === 'emergency_preempt' || action?.reason === 'emergency_preempt_gps', // emergency_preempt_gps = מקור GPS locate
+    emergencyLaneId: state.emergency_signal?.lane_id ?? ((action?.reason === 'emergency_preempt' || action?.reason === 'emergency_preempt_gps') ? (action?.phase_id === 0 ? 0 : 1) : null), // נתיב חירום: מה-signal או מה-phase
     emergencyVehicleId: state.emergency_signal?.vehicle_id ?? null,
     updatedAt: new Date((state.timestamp || Date.now() / 1000) * 1000).toLocaleString('he-IL'),
     signals: lanes.map((lane) => ({
       direction: directionLabel(lane),
-      color: laneToSignalColor(currentPhase, lane.lane_id),
+      color: laneToSignalColor(
+        currentPhase,
+        lane.lane_id,
+        Boolean(state.emergency_signal?.active) || action?.reason === 'emergency_preempt' || action?.reason === 'emergency_preempt_gps', // מקור GPS — גם emergency_preempt_gps מציב אדום/ירוק
+        state.emergency_signal?.lane_id ?? ((action?.reason === 'emergency_preempt' || action?.reason === 'emergency_preempt_gps') ? (action?.phase_id === 0 ? 0 : 1) : null) // צבע: נתיב חירום ירוק, שאר אדום
+      ),
       queue: lane.vehicle_count,
       waitingSec: lane.waiting_time_sec
     })),

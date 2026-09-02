@@ -46,7 +46,7 @@ function App() {
     const signal = nextStatus.emergency_signal || null;
     const signalActive = Boolean(signal?.active);
     const emergencyCleared = source === 'emergency_cleared';
-    const emergencyPreempt = source === 'emergency_preempt';
+    const emergencyPreempt = source === 'emergency_preempt' || source === 'emergency_preempt_gps'; // תמיכה גם ב-GPS locate (emergency_preempt_gps) שנוסף ב-TrafficServer.cpp
     const prevUiUntil = Number(currentStatus?.emergencyUiUntil) || 0;
 
     const nextUiUntil = emergencyCleared

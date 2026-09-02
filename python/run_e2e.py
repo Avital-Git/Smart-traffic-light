@@ -149,6 +149,8 @@ def main() -> int:
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--camera", action="store_true", help="Use real camera mode in auto_launcher")
+    parser.add_argument("--video", default=None, metavar="PATH",
+                        help="Use video file for intersection 1 (e.g. download.mp4)")
     parser.add_argument("--skip-vision", action="store_true", help="Skip auto_launcher process")
     parser.add_argument("--with-client", action="store_true", help="Start React dashboard (npm start)")
     args = parser.parse_args()
@@ -214,6 +216,8 @@ def main() -> int:
             launcher_cmd = [sys.executable, str(PYTHON_DIR / "auto_launcher.py"), "--server", state_url]
             if args.camera:
                 launcher_cmd.append("--camera")
+            elif args.video:
+                launcher_cmd += ["--video", args.video]
 
             launcher_spec = make_proc_spec(
                 "Vision/Simulation auto launcher",
@@ -247,7 +251,7 @@ def main() -> int:
         print(f"[E2E] API docs: {server_url}/docs")
         if args.with_client:
             print("[E2E] Dashboard: http://127.0.0.1:3000")
-        print(f"[E2E] Hardware mode: {'REAL' if args.camera else 'SIMULATION'}")
+        print(f"[E2E] Hardware mode: {'REAL CAMERA' if args.camera else ('VIDEO (intersection 1)' if args.video else 'SIMULATION')}")
         print("[E2E] Press Ctrl+C to stop all processes.")
 
         while True:

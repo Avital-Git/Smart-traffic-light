@@ -6,6 +6,7 @@
 #include "ThresholdConfig.h"
 #include "NeighborCoordConfig.h"
 #include "Simulation.h"
+#include "TrafficConstants.h"
 
 #include <iostream>
 #include <vector>
@@ -140,12 +141,7 @@ bool test_neighbor_rule_prefers_matching_phase() {
     rlCfg.epsilonMin = 1.0;
     rlCfg.epsilonDecay = 1.0;
 
-    NeighborCoordConfig neighborCfg;
-    neighborCfg.ruleSyncWeight = 4.0;
-    neighborCfg.ruleEmergencyBonus = 0.0;
-    neighborCfg.ruleOpposingWeight = 0.2;
-
-    RLAgent agent(rlCfg, TrafficThresholdConfig{}, neighborCfg);
+    RLAgent agent(rlCfg, TrafficThresholdConfig{});
 
     JunctionState state;
     state.laneIds = {0, 1};
@@ -168,8 +164,7 @@ bool test_neighbor_rule_prefers_matching_phase() {
 
 bool test_kpi_neighbor_regression() {
     // Regression gate: ensure neighbor coordination doesn't degrade KPI.
-    // Minimum threshold: neighbor profile beats no-neighbor by at least 0.3.
-    constexpr double kMinImprovement = 0.3;
+    // Minimum threshold: neighbor profile beats no-neighbor by at least kMinNeighborImprovement.
 
     const auto result = traffic_sim::run_simulation_comparison();
     
@@ -177,7 +172,7 @@ bool test_kpi_neighbor_regression() {
         return false;
     }
     
-    if (result.scoreDelta < kMinImprovement) {
+    if (result.scoreDelta < traffic::constants::kMinNeighborImprovement) {
         return false;
     }
     

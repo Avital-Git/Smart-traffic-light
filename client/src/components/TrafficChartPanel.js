@@ -55,8 +55,9 @@ export function IntersectionVisual({ status, compact = false }) {
 
   const getLaneColor = (laneId) => {
     const hasServerEmergencyLane = Number.isFinite(Number(emergencyLaneFromStatus));
-    if (hasServerEmergencyLane && emergencyActive && Number(laneId) === Number(emergencyLaneFromStatus)) {
-      return '#10B981';
+    if (hasServerEmergencyLane && emergencyActive) {
+      // בחירום: נתיב החירום ומי שבאותה פאזה (זוגי/אי-זוגי) — ירוק. כל השאר — אדום.
+      return (laneId % 2) === (Number(emergencyLaneFromStatus) % 2) ? '#10B981' : '#EF4444';
     }
     if (!displayPhase || displayPhase === 'Hold') {
       return '#EF4444';
@@ -108,7 +109,7 @@ export function IntersectionVisual({ status, compact = false }) {
     status.emergency_active ||
     emergencySignal?.active ||
     status.state?.emergency_signal?.active ||
-    status.actionSource === 'emergency_preempt'
+    status.actionSource === 'emergency_preempt' || status.actionSource === 'emergency_preempt_gps' // emergency_preempt_gps = חירום GPS — מציג גם בגרף ובאינדיקטור החירום
   );
 
   const laneDirById = {};

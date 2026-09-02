@@ -1,179 +1,178 @@
-# Smart Traffic Project
+﻿# Smart Traffic Controller
 
-מערכת ניהול תנועה חכמה - פרויקט גמר
+מערכת חכמה לניהול תנועה בצמתים, המשלבת למידה חיזוקית, זיהוי תנועה באמצעות Computer Vision, ניהול צמתים בזמן אמת ותקשורת בין צמתים.
 
-## 🎯 תמיכה דינאמית בנתיבים - המערכת מגלה את עצמה!
+## תמצית
 
-**עדכון גדול:** המערכת כעת **דינאמית לחלוטין** - היא קוראת מ-SQL Server כמה מצלמות יש בכל צומת ופועלת בהתאם!
+הפרויקט מתמקד בשלושה עקרונות מרכזיים:
 
-- צומת עם 2 מצלמות? ✓ עובד
-- צומת עם 4 מצלמות? ✓ עובד  
-- צומת עם 10 מצלמות? ✓ עובד
+- ניהול תנועה חכם בצמתים באמצעות בקרה דינמית
+- הקדמה לרכבי חירום כדי להפחית עיכובים ולהבטיח תגובה מהירה
+- גל ירוק בין צמתים סמוכים כדי לשפר את זרימת התנועה ולהקטין עצירות מיותרות
 
-**כל צומת מקבלת את הגדרתה מהמסד נתונים!**
+המערכת כוללת גם מנגנון של קונפיגורציה דינמית, תמיכה במידע מהמסד, ויכולות ניתוח KPI למעקב אחרי ביצועים.
 
----
+## תכונות עיקריות
 
-## 📁 מבנה הפרויקט
+- שליטה בזמן אמת של רמזורים בצמתים
+- בחירה אוטומטית של פאזה באמצעות Reinforcement Learning
+- זיהוי כלי רכב ונתיבים באמצעות OpenCV + YOLO
+- טיפול ברכבי חירום עם עדיפות מיידית
+- תיאום בין צמתים סמוכים ליצירת גל ירוק
+- זיהוי התנגשויות בין נתיבים והגבלת פאזה לא בטוחה
+- ממשק React לצפייה בסטטוס ובמדדים
 
+## קדימות לרכבי חירום
+
+המערכת תומכת במנגנון של עדיפות לרכבי חירום על פני תנועה רגילה. כאשר מת detected רכב חירום, המערכת:
+
+- מזהה את הגעתו דרך הזרם/הנתונים של הצומת
+- מעלה את עדיפות העדכון של הפאזה הרלוונטית
+- מפעילה מעבר למצב המאפשר תנועת רכבי החירום ללא עיכוב מיותר
+- מונעת חסימה של נתיב החירום על ידי בקרת התנגשויות ופלטפורמת קבלת החלטות בזמן אמת
+
+מטרה: הפחתת זמן התגובה, שיפור בטיחות, והבטחת מעבר מהיר ונגיש יותר לשירותי חירום.
+
+## גל ירוק בין צמתים
+
+המערכת כוללת גם מנגנון תיאום בין צמתים סמוכים, שנועד לאפשר גל ירוק לאורך מסלול תחבורה רציף. עיקרון העבודה:
+
+- כל צומת משתף מידע על עומס, מצב זרימה ומצב שכנים
+- המערכת מקצה פאזה תואמת לזרימת התנועה בשכנים
+- כאשר יש רצף תנועה בכיוון מסוים, הצמתים מסונכרנים כך שהאור ירוק נמשך לאורך הדרך
+- הדבר מפחית עצירות מיותרות, משפר את קצב התנועה ושומר על רציפות תנועה טובה יותר
+
+זהו רכיב חשוב לצמצום המתנה בצמתים סמוכים ולשיפור ביצועי הרשת העירונית בכללותה.
+
+## ארכיטקטורה
+
+```text
+React Dashboard
+      │
+      ▼
+Python API / Services
+      │
+      ├── Vision (OpenCV + YOLO)
+      ├── Metrics / KPI
+      ├── Emergency handling
+      └── Neighbor coordination
+      │
+      ▼
+C++ Traffic Controller
+      │
+      ├── RL decision engine
+      ├── Phase scheduling
+      ├── Conflict logic
+      └── Green-wave coordination
+      │
+      ▼
+SQL / JSON runtime configuration
 ```
+
+## מבנה הפרויקט
+
+```text
 smart-traffic-project/
-├── vision/
-│   ├── intersection_vision.py      # עיבוד וידאו + YOLO זיהוי
-│   └── __init__.py
-├── cpp/server/
-│   ├── TrafficServer.cpp           # שרת C++ פעיל
-│   └── Database.cpp
-├── controller/
-│   ├── rl_agent.h/.cpp             # C++ - RL החלטות
-│   ├── main.cpp
-│   └── CMakeLists.txt
-├── website/
-│   ├── src/                        # React ממשק לקוח
-│   └── package.json
-├── database_schema.sql             # SQL סכימה עם num_cameras
-├── db_intersections.py             # קישור ל-SQL Server
-├── auto_launcher.py                # מפעיל אוטומטי דינאמי
-├── requirements.txt                # תלויות Python
-├── GETTING_STARTED.md              # הוראות מלאות
-└── _backup/                        # עותקי גיבוי
+├── cpp/                          # לוגיקת הבקרה ב-C++
+├── python/                      # שרת Python, זיהוי, KPI, ניהול תנועה
+├── client/                      # ממשק React
+├── database/                    # סכמות SQL ונתוני צמתים
+├── docs/                        # תיעוד נוסף
+├── reports/                     # דוחות KPI וסטטיסטיקות
+├── scripts/                     # סקריפטים מסייעים
+├── .env.example                 # משתני סביבה לדוגמה
+├── .gitignore                   # קבצי התעלמות מ-Git
+├── GETTING_STARTED.md           # מדריך התקנה והפעלה
+├── PROJECT_COMPLETION_REPORT.md # דוח מצב הפרויקט
+├── README.md                    # המדריך הראשי
+├── yolov8n.pt                   # מודל YOLO מראש
+└── ...
 ```
 
----
+## טכנולוגיות
 
-## 🚀 התחלה מהירה (3 צעדים)
+- Python: FastAPI, OpenCV, Ultralytics YOLO, pyodbc, websockets
+- C++: מנוע קבלת החלטות, סינכרון צמתים, לוגיקת פאזה
+- React: ממשק משתמש וציונים בזמן אמת
+- SQL Server: נתוני צמתים ותצורות דינמיות
+- CMake: בניית קוד C++
 
-### 1️⃣ סביבה + תלויות
+## דרישות מערכת
+
+- Python 3.10+
+- Node.js 18+
+- Visual Studio 2022 עם C++ build tools
+- SQL Server
+- Windows 10/11 מומלץ
+
+## הפעלה מהירה
+
+### 1) יצירת סביבה פייתונית
 
 ```bash
 python -m venv .venv
-.\.venv\Scripts\activate  # Windows
-
-pip install -r requirements.txt
+.\.venv\Scripts\activate
+pip install -r python/requirements.txt
 ```
 
-### 2️⃣ מסד נתונים
+### 2) התקנת תלויות frontend
 
 ```bash
-# בחר אחת:
-sqlcmd -S localhost -E -i database/database_schema_sqlserver.sql
-# או
-python db_intersections.py
+cd client
+npm install
 ```
 
-### 3️⃣ הפעלה
+### 3) בניית ה-C++
 
-**טרמינל 1:**
+```bash
+cd cpp
+cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+cmake --build build --config Release
+```
+
+### 4) הפעלה מלאה
+
+```bash
+python python/run_e2e.py --with-client
+```
+
+### 5) הפעלה ידנית
+
 ```bash
 cpp\build\Release\traffic_server.exe 8000
-```
-
-**טרמינל 2:**
-```bash
 python python/auto_launcher.py
 ```
 
-**טרמינל 3 (אופציונלי - בקר RL מלא):**
-```bash
-cpp\build\Release\smart_traffic_controller.exe --server 127.0.0.1 8000
-```
-
-✅ **סיים!** המערכת קוראת את SQL Server ופועלת עם מספר דינאמי של נתיבים!
-
----
-
-## 🎬 כיצד זה עובד
-
-```
-1. SQL Server מכיל את num_cameras לכל צומת
-   ↓
-2. auto_launcher.py קורא מהמסד
-   ↓
-3. יוצר IntersectionAnalyzer(num_lanes=num_cameras)
-   ↓
-4. כל צומת שלחה state לשרת
-   ↓
-5. שרת מחליט על פעולה (אור ירוק לנתיב X)
-```
-
----
-
-## 📊 דינאמיות בעצמה
-
-### SQL Server טבלה
-
-```sql
-CREATE TABLE intersections (
-  intersection_id INT,
-  name VARCHAR(128),
-  num_cameras INT,  -- <-- דינאמי!
-  ...
-);
-
--- דוגמה:
-('INT001', 'צומת ראשי', 4)      -- 4 נתיבים
-('INT002', 'צומת בית ספר', 3)   -- 3 נתיבים
-('INT003', 'צומת גדולה', 6)     -- 6 נתיבים!
-```
-
-### RL Vector גודל משתנה
-
-```
-num_cameras=3 → RL vector בגודל 13
-num_cameras=4 → RL vector בגודל 17
-num_cameras=6 → RL vector בגודל 25
-
-נוסחה: (4 * num_cameras) + 1
-```
-
----
-
-## 🛠️ טכנולוגיות
-
-- **Python**: YOLO, OpenCV, SQL Server (Vision/Feeder)
-- **C++**: traffic_server + RL controller
-- **React**: ממשק משתמש (בבנייה)
-- **SQL Server**: מסד נתונים דינאמי
-
----
-
-## 📚 תיעוד
-
-- [GETTING_STARTED.md](GETTING_STARTED.md) - הוראות מלאות
-- [cpp/README.md](cpp/README.md) - C++ server + controller
-- [client/README.md](client/README.md) - React
-
----
-
-## 💡 שאלה: SQL - היכן להשאיר?
-
-**תשובה:** `database_schema.sql` נשאר בפרויקט כחלק מהתשתית.
-
-**אפשרויות שימוש:**
-
-1. **ישירה מ-SQL Server Management Studio (SSMS)** (קל ביותר)
-   - פתח את הקובץ → Execute
-
-2. **שורת פקודה**
-   - `sqlcmd -S localhost -E -i database/database_schema_sqlserver.sql`
-
-3. **דרך Python**
-   - `python db_intersections.py`
-
-**כל שלוש דרכים יוצרות את המסד וטבלות המצלמות הדינאמיות!**
-
----
-
-## ✅ בדיקה
+ואם רוצים גם את ממשק המשתמש:
 
 ```bash
-# בדיקת שרת
+cd client
+npm start
+```
+
+## בדיקות
+
+בדיקת בריאות השרת:
+
+```bash
 curl http://127.0.0.1:8000/health
-
-# בדיקת SQL Server
-python db_intersections.py
 ```
 
----
+הרצת בדיקות מערכת:
 
-**מערכת ניהול תנועה חכמה עם תמיכה דינאמית מלאה לכל מספר מצלמות!**
+```bash
+python python/system_test_suite.py
+```
+
+## תיעוד נוסף
+
+- [GETTING_STARTED.md](GETTING_STARTED.md) — מדריך התקנה מפורט
+- [PROJECT_COMPLETION_REPORT.md](PROJECT_COMPLETION_REPORT.md) — סיכום פרויקט וביצועים
+- [cpp/README.md](cpp/README.md) — פרטים על מנוע הצומת והבקרה
+- [client/README.md](client/README.md) — שימוש בממשק המשתמש
+
+## סטטוס
+
+הפרויקט מוכן כבסיס למערכת בקרה חכמה לצמתים עירוניים, עם תמיכה במצבי אמת, תיאום בין צמתים, הקדמת רכבי חירום, ויכולת הרחבה עתידית.
+
+> לפני העלאה ל-GitHub, כדאי להוסיף רישיון מתאים, למשל MIT או Apache 2.0.

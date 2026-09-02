@@ -1,29 +1,33 @@
 #pragma once
 
-#include <string>
-#include <utility>
-#include <vector>
+// הגדרת מבנה הנתונים וממשק הטעינה של קונפיגורציית קונפליקטים בין נתיבים
+
+#include <string>   // std::string
+#include <utility>  // std::pair
+#include <vector>   // std::vector
 
 namespace traffic {
 
+// מבנה המכיל את רשימת זוגות הנתיבים הסותרים
 struct LaneConflictConfig {
-    // Pairs of lane IDs that must never be green simultaneously.
+    // זוגות מזהי נתיבים שאסור שיהיו ירוקים בו-זמנית
     std::vector<std::pair<int, int>> conflictPairs;
 
-    // Metadata for diagnostics.
+    // מקור הקונפיגורציה — לצורך אבחון ולוגים
     std::string source = "defaults";
 };
 
-// Loads lane conflicts from JSON file path. If path is empty, resolve default search locations.
-// Falls back to empty conflict list when file is missing/invalid.
+// טוען קונפליקטים מקובץ JSON בנתיב נתון.
+// אם הנתיב ריק — מחפש בנתיבי ברירת מחדל.
+// אם הקובץ חסר או פגום — מחזיר רשימת קונפליקטים ריקה.
 LaneConflictConfig loadLaneConflictConfig(const std::string& preferredPath = "");
 
-// Loads lane conflicts with per-intersection override support.
-// Resolution order:
-// 1) env var TRAFFIC_CONFLICTS_FILE
+// טוען קונפליקטים עם תמיכה בעקיפה ספציפית לצומת.
+// סדר עדיפויות:
+// 1) משתנה סביבה TRAFFIC_CONFLICTS_FILE
 // 2) ./lane_conflicts_<intersectionId>.json
 // 3) ./cpp/lane_conflicts_<intersectionId>.json
-// 4) generic loader loadLaneConflictConfig(preferredPath)
+// 4) טעינה גנרית דרך loadLaneConflictConfig(preferredPath)
 LaneConflictConfig loadLaneConflictConfigForIntersection(int intersectionId, const std::string& preferredPath = "");
 
 } // namespace traffic

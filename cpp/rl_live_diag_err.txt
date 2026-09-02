@@ -1,2 +1,0 @@
-[Junction 1] conflict blocked between lanes 0 and 1
-[Junction 1] rejected invalid phase 900

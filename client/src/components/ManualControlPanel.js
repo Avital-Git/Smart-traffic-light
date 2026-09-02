@@ -19,7 +19,7 @@ export function ManualControlPanel({
     status?.emergency_active ||
     status?.emergency_signal?.active ||
     status?.state?.emergency_signal?.active ||
-    status?.actionSource === 'emergency_preempt'
+    status?.actionSource === 'emergency_preempt' || status?.actionSource === 'emergency_preempt_gps' // emergency_preempt_gps = חירום שהגיע מ-GPS locate (POST /emergency/locate)
   );
 
   const emergencyLaneOptions = useMemo(() => {

@@ -8,6 +8,7 @@
 #include "PhaseConfig.h"
 #include "server/RuntimeConfig.h"
 #include "ThresholdConfig.h"
+#include "TrafficConstants.h"
 
 #include <algorithm>
 #include <cmath>
@@ -49,7 +50,9 @@ SimMetrics scale_metrics(const SimMetrics& m, double s) {
 
 double profile_score(const SimMetrics& m) {
     // Lower is better. Prioritize avg waiting, then queue, then throughput.
-    return (m.avgWaitingSec * 100.0) + static_cast<double>(m.maxQueue) - (static_cast<double>(m.throughput) * 0.02);
+    return (m.avgWaitingSec * traffic::constants::kProfileScoreWaitWeight)
+         + static_cast<double>(m.maxQueue)
+         - (static_cast<double>(m.throughput) * traffic::constants::kProfileScoreThroughputWeight);
 }
 
 bool config_loaded_from_file(const traffic::NeighborCoordConfig& cfg) {
@@ -83,17 +86,17 @@ bool phase_contains_lane(const std::vector<traffic::Action>& phases, int phaseId
 traffic::JunctionState add_simulated_neighbors(traffic::JunctionState state, int step) {
     traffic::NeighborSignal upstream;
     upstream.intersectionId = 2;
-    upstream.phaseId = ((step / 20) % 2 == 0) ? 0 : 1;
+    upstream.phaseId = ((step / traffic::constants::kNeighborPhaseCycleUpstream) % 2 == 0) ? 0 : 1;
     upstream.totalQueue = (upstream.phaseId == 0) ? 26 : 12;
     upstream.avgWaitingSec = (upstream.phaseId == 0) ? 18.0 : 8.0;
     upstream.emergencyActive = false;
 
     traffic::NeighborSignal downstream;
     downstream.intersectionId = 3;
-    downstream.phaseId = ((step / 25) % 2 == 0) ? 1 : 0;
+    downstream.phaseId = ((step / traffic::constants::kNeighborPhaseCycleDownstream) % 2 == 0) ? 1 : 0;
     downstream.totalQueue = (downstream.phaseId == 1) ? 24 : 10;
     downstream.avgWaitingSec = (downstream.phaseId == 1) ? 16.0 : 7.0;
-    downstream.emergencyActive = (step >= 180 && step < 190);
+    downstream.emergencyActive = (step >= traffic::constants::kNeighborEmergencyWindowStart && step < traffic::constants::kNeighborEmergencyWindowEnd);
 
     state.neighborSignals = {upstream, downstream};
     return state;
@@ -177,7 +180,7 @@ SimMetrics run_single_simulation(
     
     if (useRlPolicy) {
         const traffic::TrafficThresholdConfig thresholds = traffic::loadTrafficThresholdConfigForIntersection(1);
-        rlAgent = std::make_shared<traffic::RLAgent>(runtimeConfig.rl, thresholds, neighborConfig);
+        rlAgent = std::make_shared<traffic::RLAgent>(runtimeConfig.rl, thresholds);
         const std::uint32_t modeSalt = useNeighborCoordination ? 0x9E3779B9u : 0x85EBCA6Bu;
         rlAgent->setRandomSeed(seed ^ modeSalt);
         controller = std::make_shared<traffic::RLController>(rlAgent);
@@ -186,7 +189,7 @@ SimMetrics run_single_simulation(
     }
 
     std::vector<int> queueByLane = {8, 5, 7, 4};
-    const int saturationPerGreenSec = 2;
+    const int saturationPerGreenSec = traffic::constants::kSaturationPerGreenSec;
     const double stepSec = 1.0;
 
     int totalDeparted = 0;
@@ -195,13 +198,13 @@ SimMetrics run_single_simulation(
     double waitingIntegral = 0.0;
 
     for (int t = 0; t < steps; ++t) {
-        const bool emergencyActive = (t >= 120 && t < 130);
+        const bool emergencyActive = (t >= traffic::constants::kSimEmergencyWindowStart && t < traffic::constants::kSimEmergencyWindowEnd);
         std::optional<int> emergencyLane = emergencyActive ? std::optional<int>(2) : std::nullopt;
         junction.setEmergencySignal(emergencyActive, emergencyLane);
 
         for (int laneId = 0; laneId < static_cast<int>(queueByLane.size()); ++laneId) {
             const bool emergencyOnLane = emergencyActive && emergencyLane.has_value() && laneId == *emergencyLane;
-            const double density = std::clamp(static_cast<double>(queueByLane[laneId]) * 8.0, 0.0, 100.0);
+            const double density = std::clamp(static_cast<double>(queueByLane[laneId]) * traffic::constants::kDensityScaleFactor, 0.0, 100.0);
             junction.updateLaneObservation(laneId, queueByLane[laneId], emergencyOnLane, density);
         }
 
@@ -238,7 +241,7 @@ SimMetrics run_single_simulation(
             maxQueue = std::max(maxQueue, queueByLane[laneId]);
 
             const bool emergencyOnLane = emergencyActive && emergencyLane.has_value() && laneId == *emergencyLane;
-            const double density = std::clamp(static_cast<double>(queueByLane[laneId]) * 8.0, 0.0, 100.0);
+            const double density = std::clamp(static_cast<double>(queueByLane[laneId]) * traffic::constants::kDensityScaleFactor, 0.0, 100.0);
             junction.updateLaneObservation(laneId, queueByLane[laneId], emergencyOnLane, density);
         }
 
@@ -302,7 +305,7 @@ void print_metrics(const char* name, const SimMetrics& m) {
 
 void run_simulation_comparison_verbose() {
     std::cout << "\n=== Simulation: Baseline vs RL ===\n";
-    constexpr int kSteps = 300;
+    constexpr int kSteps = traffic::constants::kSimVerboseSteps;
 
     const std::vector<std::uint32_t> seeds = {12345u, 23456u, 34567u, 45678u, 56789u};
 
@@ -392,7 +395,7 @@ void run_simulation_comparison_verbose() {
 SimulationResult run_simulation_comparison() {
     SimulationResult result;
 
-    constexpr int kSteps = 150; // Shorter for regression test
+    constexpr int kSteps = traffic::constants::kSimRegressionSteps; // Shorter for regression test
     const std::vector<std::uint32_t> seeds = {12345u, 23456u}; // Just 2 seeds for speed
 
     const traffic::NeighborCoordConfig defaultNeighborCfg = traffic::loadNeighborCoordConfig();

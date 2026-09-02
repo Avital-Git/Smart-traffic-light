@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <unordered_set>
 #include <utility>
+#include "TrafficConstants.h"  // קבועי מערכת — kDefaultMinGreenSec, kDefaultYellowSec וכו'
 
 namespace traffic {
 
@@ -14,7 +15,7 @@ struct NeighborSignal {//מידע על אותות שכנים לצורך תיאו
     int totalQueue = 0;//מספר כלי הרכב בתור אצל השכן
     double avgWaitingSec = 0.0;//זמן המתנה ממוצע של כלי הרכב בתור אצל השכן
     bool emergencyActive = false;// האם יש מצב חירום פעיל אצל השכן
-    int travelTimeSec = 30;//זמן נסיעה משוער מהשכן אלינו - יכול לשמש לחיזוי מתי יגיעו כלי רכב מהשכן
+    int travelTimeSec = constants::kDefaultNeighborTravelTimeSec;//זמן נסיעה משוער מהשכן אלינו - יכול לשמש לחיזוי מתי יגיעו כלי רכב מהשכן
     double signedAtSec = 0.0;// כדי לא להשתמש במידע פג תוקף, טיימסטמפ שליחת המידע מהשכן - לשם אימות תקינות המידע
     bool signatureVerified = false;// האם האותות מהשכן עברו אימות חתימה דיגיטלית - כדי להבטיח שהמידע אמין ולא מזויף
 };
@@ -51,8 +52,8 @@ public:
         double minGreenSec,//זמן ירוק מינימלי לכל פאזה 
         double maxGreenSec,//זמן ירוק מקסימלילכל פאזה
         std::vector<std::pair<int, int>> conflictPairs = {},//זוגות קונפליקטים
-        double yellowSec = 2.0,//זמן צהוב בין פאזה לפאזה
-        double allRedSec = 1.0//זמן "הכול אדום" בין פאזה לפאזה
+        double yellowSec = constants::kDefaultYellowSec,//זמן צהוב בין פאזה לפאזה
+        double allRedSec = constants::kDefaultAllRedSec//זמן "הכול אדום" בין פאזה לפאזה
     );
 
     int id() const noexcept;// קבלת מזהה הצומת
@@ -96,11 +97,11 @@ private:
     int activePhaseId_ = -1;// מזהה הפאזה הפעילה כרגע
     double phaseStartSec_ = 0.0;// זמן התחלת הפאזה הפעילה
     double lastPhaseSwitchSec_ = -1.0;// זמן ההחלפה האחרון של הפאזות
-    double minGreenSec_ = 5.0;// זמן ירוק מינימלי לכל פאזה
-    double maxGreenSec_ = 60.0;// זמן ירוק מקסימלילכל פאזה
-    double yellowSec_ = 2.0;// זמן צהוב בין פאזה לפאזה
-    double allRedSec_ = 1.0;// זמן "הכול אדום" בין פאזה לפאזה
-    double interGreenSec_ = 3.0;// זמן כולל של צהוב + הכול אדום בין פאזה לפאזה
+    double minGreenSec_ = constants::kDefaultMinGreenSec;// זמן ירוק מינימלי לכל פאזה
+    double maxGreenSec_ = constants::kDefaultMaxGreenSec;// זמן ירוק מקסימלילכל פאזה
+    double yellowSec_ = constants::kDefaultYellowSec;// זמן צהוב בין פאזה לפאזה
+    double allRedSec_ = constants::kDefaultAllRedSec;// זמן "הכול אדום" בין פאזה לפאזה
+    double interGreenSec_ = constants::kDefaultInterGreenSec;// זמן כולל של צהוב + הכול אדום בין פאזה לפאזה
 
     bool emergencyActive_ = false;// האם יש מצב חירום פעיל בצומת
     std::optional<int> emergencyLaneId_;//הנתיב בו נמצא החירום במידה ופעיל

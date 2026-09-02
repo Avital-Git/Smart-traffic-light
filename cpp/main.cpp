@@ -16,6 +16,7 @@
 #include "PhaseConfig.h"
 #include "SelfTests.h"
 #include "ThresholdConfig.h"
+#include "TrafficConstants.h"
 
 #include <algorithm>
 #include <chrono>
@@ -41,29 +42,29 @@
 
 namespace {
 
-struct ParsedLane {
-    int laneId = -1;
-    int vehicleCount = 0;
-    double densityPct = 0.0;
-    double waitingSec = 0.0;
+struct ParsedLane {// מידע על נתיב בצומת
+    int laneId = -1;// מזהה הנתיב
+    int vehicleCount = 0;// מספר הרכבים בנתיב
+    double densityPct = 0.0;// אחוז הצפיפות בנתיב
+    double waitingSec = 0.0;// זמן ההמתנה בנתיב
 };
 
-struct ParsedPacketState {
-    int intersectionId = 1;
-    double timestamp = 0.0;
-    bool emergencyActive = false;
-    std::optional<int> emergencyLaneId;
-    std::vector<ParsedLane> lanes;
-    std::vector<traffic::NeighborSignal> neighbors;
+struct ParsedPacketState {// מידע על מצב החבילה שנשלחה מהצומת
+    int intersectionId = 1;// מזהה הצומת
+    double timestamp = 0.0;// חותמת זמן של המצב
+    bool emergencyActive = false;// מציין אם יש מצב חירום פעיל בצומת
+    std::optional<int> emergencyLaneId;// מזהה הנתיב שבו יש מצב חירום, אם קיים
+    std::vector<ParsedLane> lanes;// רשימת הנתיבים בצומת
+    std::vector<traffic::NeighborSignal> neighbors;// רשימת האותות מהשכנים
 };
 
-struct NeighborAuthConfig {
-    std::string sharedKey = "demo-neighbor-message-key";
-    double maxSignatureSkewSec = 10.0;
-    std::string source = "defaults";
+struct NeighborAuthConfig {// קונפיגורציה לאימות הודעות מהשכנים
+    std::string sharedKey = "demo-neighbor-message-key";// מפתח משותף לאימות הודעות מהשכנים
+    double maxSignatureSkewSec = traffic::constants::kDefaultNeighborSignatureSkewSec;// ההפרש המקסימלי המותר בין חותמות הזמן של ההודעות
+    std::string source = "defaults";// מקור הקונפיגורציה
 };
 
-std::optional<std::string> read_text_file(const std::string& path) {
+std::optional<std::string> read_text_file(const std::string& path) {// פונקציה שקוראת קובץ טקסט ומחזירה את תוכנו
     std::ifstream in(path);
     if (!in.is_open()) return std::nullopt;
     std::ostringstream ss;
@@ -71,8 +72,8 @@ std::optional<std::string> read_text_file(const std::string& path) {
     return ss.str();
 }
 
-NeighborAuthConfig load_neighbor_auth_config() {
-    const std::vector<std::string> candidates = {
+NeighborAuthConfig load_neighbor_auth_config() {// פונקציה שמטענת את קונפיגורציית האימות של הודעות השכנים
+    const std::vector<std::string> candidates = {// רשימת נתיבים אפשריים לקובץ הקונפיגורציה של האימות
         "neighbor_message_auth.json",
         "cpp/neighbor_message_auth.json",
         "../neighbor_message_auth.json",
@@ -80,35 +81,35 @@ NeighborAuthConfig load_neighbor_auth_config() {
         "python/server/neighbor_message_auth.json",
     };
 
-    NeighborAuthConfig cfg;
-    for (const auto& path : candidates) {
-        const auto text = read_text_file(path);
+    NeighborAuthConfig cfg;// אובייקט קונפיגורציה עם ערכי ברירת מחדל
+    for (const auto& path : candidates) {// לולאה שעוברת על כל הנתיבים האפשריים
+        const auto text = read_text_file(path);// קוראת את תוכן הקובץ אם הוא קיים
         if (!text.has_value()) continue;
 
-        std::smatch m;
-        std::regex keyRe("\\\"shared_hmac_key\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"");
-        if (!std::regex_search(*text, m, keyRe)) {
+        std::smatch m;// משתנה לאחסון תוצאות החיפוש של regex
+        std::regex keyRe("\\\"shared_hmac_key\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"");// regex שמחפש את המפתח המשותף לאימות ההודעות מהשכנים
+        if (!std::regex_search(*text, m, keyRe)) {// אם לא נמצא המפתח המשותף, ממשיכה לנתיב הבא
             continue;
         }
-        cfg.sharedKey = m[1].str();
+        cfg.sharedKey = m[1].str();// מעדכנת את המפתח המשותף בקונפיגורציה
 
-        std::regex skewRe("\\\"max_signature_skew_sec\\\"\\s*:\\s*(-?\\d+(?:\\.\\d+)?)");
+        std::regex skewRe("\\\"max_signature_skew_sec\\\"\\s*:\\s*(-?\\d+(?:\\.\\d+)?)");// regex שמחפש את ההפרש המקסימלי המותר בין חותמות הזמן של ההודעות
         if (std::regex_search(*text, m, skewRe)) {
             try {
-                cfg.maxSignatureSkewSec = std::max(1.0, std::stod(m[1].str()));
+                cfg.maxSignatureSkewSec = std::max(1.0, std::stod(m[1].str()));// מעדכנת את ההפרש המקסימלי המותר בין חותמות הזמן של ההודעות
             } catch (...) {
-                cfg.maxSignatureSkewSec = 10.0;
+                cfg.maxSignatureSkewSec = traffic::constants::kDefaultNeighborSignatureSkewSec;// במקרה של שגיאה, משתמשת בערך ברירת מחדל
             }
         }
 
-        cfg.source = path;
-        return cfg;
+        cfg.source = path;// מעדכנת את מקור הקונפיגורציה
+        return cfg;// מחזירה את הקונפיגורציה שנמצאה
     }
 
     return cfg;
 }
 
-std::string to_hex_lower(const std::vector<unsigned char>& data) {
+std::string to_hex_lower(const std::vector<unsigned char>& data) {// פונקציה שממירה מערך בתים למחרוזת הקסדצימלית באותיות קטנות
     static constexpr char kHex[] = "0123456789abcdef";
     std::string out;
     out.reserve(data.size() * 2);
@@ -119,13 +120,13 @@ std::string to_hex_lower(const std::vector<unsigned char>& data) {
     return out;
 }
 
-std::string to_lower_copy(std::string s) {
+std::string to_lower_copy(std::string s) {// פונקציה שממירה מחרוזת לאותיות קטנות
     for (auto& ch : s) {
         ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
     }
     return s;
 }
-
+// פונקציה שמחשבת את ה-HMAC-SHA256 של מחרוזת ומחזירה את התוצאה כמחרוזת הקסדצימלית באותיות קטנות
 std::optional<std::string> hmac_sha256_hex(const std::string& key, const std::string& payload) {
 #ifdef _WIN32
     BCRYPT_ALG_HANDLE alg = nullptr;
@@ -187,122 +188,122 @@ std::optional<std::string> hmac_sha256_hex(const std::string& key, const std::st
 #endif
 }
 
-bool signature_equals(std::string a, std::string b) {
-    a = to_lower_copy(std::move(a));
-    b = to_lower_copy(std::move(b));
+bool signature_equals(std::string a, std::string b) {// פונקציה שמבצעת השוואה בין שתי מחרוזות בצורה שאינה תלויה באותיות גדולות או קטנות
+    a = to_lower_copy(std::move(a));// ממירה את המחרוזת הראשונה לאותיות קטנות
+    b = to_lower_copy(std::move(b));//  ממירה את המחרוזת השנייה לאותיות קטנות
     return a == b;
 }
 
-std::string canonical_neighbor_payload(const traffic::NeighborSignal& n) {
-    std::ostringstream oss;
-    oss.setf(std::ios::fixed);
-    oss.precision(3);
-    oss << n.intersectionId
-        << "|" << n.phaseId
-        << "|" << n.totalQueue
-        << "|" << n.avgWaitingSec
-        << "|" << (n.emergencyActive ? 1 : 0)
-        << "|" << n.signedAtSec;
-    return oss.str();
+std::string canonical_neighbor_payload(const traffic::NeighborSignal& n) {// פונקציה שמייצרת מחרוזת ייחודית שמייצגת את המידע על השכן, לשם אימות החתימה הדיגיטלית
+    std::ostringstream oss;// יוצר סטרינג סטרים לאגירת המידע על השכן
+    oss.setf(std::ios::fixed);// הגדרת פורמט המספרים הממשיים לכתיבה בסטרינג סטרים
+    oss.precision(3);// הגדרת דיוק המספרים הממשיים לכתיבה בסטרינג סטרים
+    oss << n.intersectionId// מזהה הצומת של השכן
+        << "|" << n.phaseId// מזהה השלב של השכן
+        << "|" << n.totalQueue// מספר הרכבים בתור הכולל של השכן
+        << "|" << n.avgWaitingSec// זמן ההמתנה הממוצע של השכן
+        << "|" << (n.emergencyActive ? 1 : 0)// האם מצב חירום פעיל אצל השכן
+        << "|" << n.signedAtSec;// זמן החתימה של השכן
+    return oss.str();// מחזירה את המחרוזת הייחודית שמייצגת את המידע על השכן
 }
 
-bool verify_neighbor_signature(
-    const traffic::NeighborSignal& neighbor,
-    const std::string& signature,
-    const NeighborAuthConfig& auth
+bool verify_neighbor_signature(// פונקציה שמבצעת אימות של החתימה הדיגיטלית של השכן
+    const traffic::NeighborSignal& neighbor,// מידע על השכן
+    const std::string& signature,// החתימה הדיגיטלית שנשלחה מהשכן
+    const NeighborAuthConfig& auth// קונפיגורציה לאימות הודעות מהשכנים
 ) {
-    const double now = std::chrono::duration<double>(
-        std::chrono::system_clock::now().time_since_epoch()
-    ).count();
+    const double now = std::chrono::duration<double>(// פונקציה שמחזירה את הזמן הנוכחי בשניות מאז תחילת האפוק
+        std::chrono::system_clock::now().time_since_epoch()// החזרת הזמן הנוכחי מאז תחילת האפוק
+    ).count();// החזרת הזמן הנוכחי בשניות מאז תחילת האפוק
 
-    if (std::abs(now - neighbor.signedAtSec) > auth.maxSignatureSkewSec) {
-        return false;
+    if (std::abs(now - neighbor.signedAtSec) > auth.maxSignatureSkewSec) {// אם ההפרש בין הזמן הנוכחי לבין זמן החתימה של השכן גדול מההפרש המקסימלי המותר, מחזירה false
+        return false;// מחזירה false אם ההפרש בין הזמן הנוכחי לבין זמן החתימה של השכן גדול מההפרש המקסימלי המותר
     }
 
-    const auto expected = hmac_sha256_hex(auth.sharedKey, canonical_neighbor_payload(neighbor));
-    if (!expected.has_value()) {
-        return false;
+    const auto expected = hmac_sha256_hex(auth.sharedKey, canonical_neighbor_payload(neighbor));// מחשבת את החתימה הצפויה של השכן על פי המפתח המשותף והמידע על השכן
+    if (!expected.has_value()) {// אם לא ניתן לחשב את החתימה הצפויה, מחזירה false
+        return false;// מחזירה false אם לא ניתן לחשב את החתימה הצפויה
     }
 
-    return signature_equals(*expected, signature);
+    return signature_equals(*expected, signature);// מחזירה true אם החתימה הצפויה תואמת לחתימה שנשלחה מהשכן, אחרת מחזירה false
 }
 
-std::optional<std::string> extract_json_object(const std::string& json, const std::string& key) {
-    const std::string token = "\"" + key + "\"";
-    const std::size_t kpos = json.find(token);
-    if (kpos == std::string::npos) return std::nullopt;
+std::optional<std::string> extract_json_object(const std::string& json, const std::string& key) {// פונקציה שמחזירה אובייקט JSON לפי מפתח
+    const std::string token = "\"" + key + "\"";// יוצר את המחרוזת שמייצגת את המפתח ב-JSON
+    const std::size_t kpos = json.find(token);// מחפש את המיקום של המפתח ב-JSON
+    if (kpos == std::string::npos) return std::nullopt;// אם המפתח לא נמצא, מחזירה nullopt
 
-    std::size_t pos = json.find('{', kpos);
-    if (pos == std::string::npos) return std::nullopt;
+    std::size_t pos = json.find('{', kpos);// מחפש את המיקום של הסוגר הפותח של האובייקט JSON
+    if (pos == std::string::npos) return std::nullopt;// אם הסוגר הפותח לא נמצא, מחזירה nullopt
 
-    int depth = 0;
+    int depth = 0;// משתנה שמייצג את עומק הסוגריים של האובייקט JSON
     const std::size_t start = pos;
     for (; pos < json.size(); ++pos) {
         if (json[pos] == '{') depth++;
         else if (json[pos] == '}') {
             depth--;
             if (depth == 0) {
-                return json.substr(start, pos - start + 1);
+                return json.substr(start, pos - start + 1);// מחזירה את האובייקט JSON שמצאנו
             }
         }
     }
-    return std::nullopt;
+    return std::nullopt;// אם לא מצאנו את הסוגר הסוגר של האובייקט JSON, מחזירה nullopt
 }
 
-std::optional<std::string> extract_json_array(const std::string& json, const std::string& key) {
-    const std::string token = "\"" + key + "\"";
-    const std::size_t kpos = json.find(token);
-    if (kpos == std::string::npos) return std::nullopt;
+std::optional<std::string> extract_json_array(const std::string& json, const std::string& key) {// פונקציה שמחזירה מערך JSON לפי מפתח
+    const std::string token = "\"" + key + "\"";// יוצר את המחרוזת שמייצגת את המפתח ב-JSON
+    const std::size_t kpos = json.find(token);// מחפש את המיקום של המפתח ב-JSON
+    if (kpos == std::string::npos) return std::nullopt;// אם המפתח לא נמצא, מחזירה nullopt
 
-    std::size_t pos = json.find('[', kpos);
-    if (pos == std::string::npos) return std::nullopt;
+    std::size_t pos = json.find('[', kpos);// מחפש את המיקום של הסוגר הפותח של המערך JSON
+    if (pos == std::string::npos) return std::nullopt;// אם הסוגר הפותח לא נמצא, מחזירה nullopt
 
-    int depth = 0;
-    const std::size_t start = pos;
+    int depth = 0;// משתנה שמייצג את עומק הסוגריים של המערך JSON
+    const std::size_t start = pos;// שמירת המיקום של הסוגר הפותח של המערך JSON
     for (; pos < json.size(); ++pos) {
         if (json[pos] == '[') depth++;
         else if (json[pos] == ']') {
             depth--;
             if (depth == 0) {
-                return json.substr(start, pos - start + 1);
+                return json.substr(start, pos - start + 1);// מחזירה את המערך JSON שמצאנו
             }
         }
     }
-    return std::nullopt;
+    return std::nullopt;// אם לא מצאנו את הסוגר הסוגר של המערך JSON, מחזירה nullopt
 }
 
-std::optional<int> extract_int_field(const std::string& json, const std::string& key) {
-    std::regex re("\\\"" + key + "\\\"\\s*:\\s*(-?\\d+)");
+std::optional<int> extract_int_field(const std::string& json, const std::string& key) {// פונקציה שמחזירה ערך מספרי שלם לפי מפתח
+    std::regex re("\\\"" + key + "\\\"\\s*:\\s*(-?\\d+)");// regex שמחפש את המפתח ואת הערך המספרי שלם שלו ב-JSON
     std::smatch m;
-    if (std::regex_search(json, m, re)) return std::stoi(m[1].str());
-    return std::nullopt;
+    if (std::regex_search(json, m, re)) return std::stoi(m[1].str());// אם מצאנו את המפתח ואת הערך המספרי שלם שלו, מחזירה את הערך המספרי שלם
+    return std::nullopt;// אם לא מצאנו את המפתח או את הערך המספרי שלם שלו, מחזירה nullopt
 }
 
-std::optional<double> extract_double_field(const std::string& json, const std::string& key) {
-    std::regex re("\\\"" + key + "\\\"\\s*:\\s*(-?\\d+(?:\\.\\d+)?)");
+std::optional<double> extract_double_field(const std::string& json, const std::string& key) {// פונקציה שמחזירה ערך מספרי ממשי לפי מפתח
+    std::regex re("\\\"" + key + "\\\"\\s*:\\s*(-?\\d+(?:\\.\\d+)?)");// regex שמחפש את המפתח ואת הערך המספרי הממשי שלו ב-JSON
     std::smatch m;
-    if (std::regex_search(json, m, re)) return std::stod(m[1].str());
-    return std::nullopt;
+    if (std::regex_search(json, m, re)) return std::stod(m[1].str());// אם מצאנו את המפתח ואת הערך המספרי הממשי שלו, מחזירה את הערך המספרי הממשי
+    return std::nullopt;// אם לא מצאנו את המפתח או את הערך המספרי הממשי שלו, מחזירה nullopt
 }
 
-std::optional<bool> extract_bool_field(const std::string& json, const std::string& key) {
-    std::regex re("\\\"" + key + "\\\"\\s*:\\s*(true|false)");
+std::optional<bool> extract_bool_field(const std::string& json, const std::string& key) {// פונקציה שמחזירה ערך בוליאני לפי מפתח
+    std::regex re("\\\"" + key + "\\\"\\s*:\\s*(true|false)");// regex שמחפש את המפתח ואת הערך הבוליאני שלו ב-JSON
     std::smatch m;
-    if (std::regex_search(json, m, re)) return m[1].str() == "true";
-    return std::nullopt;
+    if (std::regex_search(json, m, re)) return m[1].str() == "true";// אם מצאנו את המפתח ואת הערך הבוליאני שלו, מחזירה את הערך הבוליאני
+    return std::nullopt;// אם לא מצאנו את המפתח או את הערך הבוליאני שלו, מחזירה nullopt
 }
 
-bool parse_packet_state(const std::string& packetJson, ParsedPacketState& out, const NeighborAuthConfig& neighborAuth) {
-    const auto stateObj = extract_json_object(packetJson, "state");
-    if (!stateObj.has_value()) return false;
+bool parse_packet_state(const std::string& packetJson, ParsedPacketState& out, const NeighborAuthConfig& neighborAuth) {// פונקציה שמפרקת את המידע על מצב החבילה שנשלחה מהצומת ומאמתת את החתימות של השכנים
+    const auto stateObj = extract_json_object(packetJson, "state");// פונקציה שמחזירה את האובייקט JSON של המצב שנשלח מהצומת
+    if (!stateObj.has_value()) return false;// אם לא מצאנו את האובייקט JSON של המצב שנשלח מהצומת, מחזירה false
 
-    out.intersectionId = extract_int_field(*stateObj, "intersection_id").value_or(1);
-    out.timestamp = extract_double_field(*stateObj, "timestamp").value_or(0.0);
-    out.lanes.clear();
-    out.neighbors.clear();
+    out.intersectionId = extract_int_field(*stateObj, "intersection_id").value_or(1);// אם לא מצאנו את המזהה של הצומת, מחזירה את המזהה של הצומת כברירת מחדל
+    out.timestamp = extract_double_field(*stateObj, "timestamp").value_or(0.0);// אם לא מצאנו את החותמת הזמן, מחזירה את החותמת הזמן כברירת מחדל
+    out.lanes.clear();// מנקה את רשימת הנתיבים הקודמת
+    out.neighbors.clear();// מנקה את רשימת השכנים הקודמת
 
-    const auto lanesArray = extract_json_array(*stateObj, "lanes");
-    if (lanesArray.has_value()) {
+    const auto lanesArray = extract_json_array(*stateObj, "lanes");// פונקציה שמחזירה את המערך JSON של הנתיבים שנשלחו מהצומת
+    if (lanesArray.has_value()) {// אם מצאנו את המערך JSON של הנתיבים שנשלחו מהצומת, מפרקת את המידע על כל נתיב ומוסיפה אותו לרשימת הנתיבים
         std::regex laneRe(
             "\\{[^\\}]*\\\"lane_id\\\"\\s*:\\s*(\\d+)"
             "[^\\}]*\\\"vehicle_count\\\"\\s*:\\s*(-?\\d+)"
@@ -310,31 +311,31 @@ bool parse_packet_state(const std::string& packetJson, ParsedPacketState& out, c
             "[^\\}]*\\\"waiting_time_sec\\\"\\s*:\\s*(-?\\d+(?:\\.\\d+)?)"
             "[^\\}]*\\}");
 
-        auto begin = std::sregex_iterator(lanesArray->begin(), lanesArray->end(), laneRe);
-        auto end = std::sregex_iterator();
-        for (auto it = begin; it != end; ++it) {
-            ParsedLane lane;
-            lane.laneId = std::stoi((*it)[1].str());
-            lane.vehicleCount = std::stoi((*it)[2].str());
-            lane.densityPct = std::stod((*it)[3].str());
-            lane.waitingSec = std::stod((*it)[4].str());
-            out.lanes.push_back(lane);
+        auto begin = std::sregex_iterator(lanesArray->begin(), lanesArray->end(), laneRe);// יוצר איטרטור שמתחיל מהאובייקט הראשון במערך הנתיבים שנשלחו מהצומת
+        auto end = std::sregex_iterator();// יוצר איטרטור שמסמן את סוף המערך הנתיבים שנשלחו מהצומת
+        for (auto it = begin; it != end; ++it) {// לולאה שעוברת על כל האובייקטים במערך הנתיבים שנשלחו מהצומת
+            ParsedLane lane;// יוצר אובייקט שמייצג את המידע על הנתיב
+            lane.laneId = std::stoi((*it)[1].str());// מעדכנת את מזהה הנתיב במידע על הנתיב
+            lane.vehicleCount = std::stoi((*it)[2].str());// מעדכנת את מספר הרכבים במידע על הנתיב
+            lane.densityPct = std::stod((*it)[3].str());// מעדכנת את אחוז הצפיפות במידע על הנתיב
+            lane.waitingSec = std::stod((*it)[4].str());// מעדכנת את זמן ההמתנה במידע על הנתיב
+            out.lanes.push_back(lane);// מוסיפה את המידע על הנתיב לרשימת הנתיבים
         }
     }
 
-    out.emergencyActive = false;
-    out.emergencyLaneId = std::nullopt;
-    if (stateObj->find("\"emergency_signal\": null") == std::string::npos) {
-        if (const auto emObj = extract_json_object(*stateObj, "emergency_signal"); emObj.has_value()) {
-            out.emergencyActive = extract_bool_field(*emObj, "active").value_or(false);
-            const auto lane = extract_int_field(*emObj, "lane_id");
-            if (lane.has_value() && *lane >= 0) {
-                out.emergencyLaneId = *lane;
+    out.emergencyActive = false;// מאתחלת את מצב החירום כלא פעיל
+    out.emergencyLaneId = std::nullopt;// מאתחלת את מזהה הנתיב שבו יש מצב חירום כלא קיים
+    if (stateObj->find("\"emergency_signal\": null") == std::string::npos) {// אם לא מצאנו את המחרוזת שמציינת שאין מצב חירום, בודקת אם יש אובייקט JSON שמייצג את מצב החירום
+        if (const auto emObj = extract_json_object(*stateObj, "emergency_signal"); emObj.has_value()) {// אם מצאנו את האובייקט JSON שמייצג את מצב החירום, מפרקת את המידע על מצב החירום ומעדכנת את המידע במבנה ParsedPacketState
+            out.emergencyActive = extract_bool_field(*emObj, "active").value_or(false);// מעדכנת את מצב החירום במבנה ParsedPacketState
+            const auto lane = extract_int_field(*emObj, "lane_id");// מעדכנת את מזהה הנתיב שבו יש מצב חירום במבנה ParsedPacketState
+            if (lane.has_value() && *lane >= 0) {// אם מצאנו את מזהה הנתיב שבו יש מצב חירום והוא חוקי, מעדכנת את המידע במבנה ParsedPacketState
+                out.emergencyLaneId = *lane;// מעדכנת את מזהה הנתיב שבו יש מצב חירום במבנה ParsedPacketState
             }
         }
     }
 
-    if (const auto neighborsArray = extract_json_array(packetJson, "neighbors"); neighborsArray.has_value()) {
+    if (const auto neighborsArray = extract_json_array(packetJson, "neighbors"); neighborsArray.has_value()) {// אם מצאנו את המערך JSON של השכנים שנשלחו מהצומת, מפרקת את המידע על כל שכן ומוסיפה אותו לרשימת השכנים
         std::regex neighborRe(
             "\\{[^\\}]*\\\"intersection_id\\\"\\s*:\\s*(\\d+)"
             "[^\\}]*\\\"action\\\"\\s*:\\s*\\\"([^\\\"]*)\\\""
@@ -346,184 +347,184 @@ bool parse_packet_state(const std::string& packetJson, ParsedPacketState& out, c
             "[^\\}]*\\\"signature\\\"\\s*:\\s*\\\"([0-9a-fA-F]+)\\\""
             "[^\\}]*\\}");
 
-        auto begin = std::sregex_iterator(neighborsArray->begin(), neighborsArray->end(), neighborRe);
-        auto end = std::sregex_iterator();
-        for (auto it = begin; it != end; ++it) {
-            traffic::NeighborSignal neighbor;
-            neighbor.intersectionId = std::stoi((*it)[1].str());
-            const std::string phaseIdText = (*it)[3].str();
-            neighbor.phaseId = (phaseIdText == "null") ? -1 : std::stoi(phaseIdText);
-            neighbor.totalQueue = std::max(0, std::stoi((*it)[4].str()));
-            neighbor.avgWaitingSec = std::max(0.0, std::stod((*it)[5].str()));
-            neighbor.emergencyActive = ((*it)[6].str() == "true");
-            neighbor.signedAtSec = std::stod((*it)[7].str());
-            const std::string signature = (*it)[8].str();
-            neighbor.signatureVerified = verify_neighbor_signature(neighbor, signature, neighborAuth);
-            if (neighbor.signatureVerified) {
-                out.neighbors.push_back(neighbor);
+        auto begin = std::sregex_iterator(neighborsArray->begin(), neighborsArray->end(), neighborRe);// יוצר איטרטור שמתחיל מהאובייקט הראשון במערך השכנים שנשלחו מהצומת
+        auto end = std::sregex_iterator();// יוצר איטרטור שמסמן את סוף המערך השכנים שנשלחו מהצומת
+        for (auto it = begin; it != end; ++it) {// לולאה שעוברת על כל האובייקטים במערך השכנים שנשלחו מהצומת
+            traffic::NeighborSignal neighbor;// יוצר אובייקט שמייצג את המידע על השכן
+            neighbor.intersectionId = std::stoi((*it)[1].str());// מעדכנת את מזהה הצומת של השכן במידע על השכן
+            const std::string phaseIdText = (*it)[3].str();// מעדכנת את מזהה השלב של השכן במידע על השכן
+            neighbor.phaseId = (phaseIdText == "null") ? -1 : std::stoi(phaseIdText);// אם מזהה השלב של השכן הוא "null", מעדכנת את מזהה השלב של השכן ל-1, אחרת מעדכנת את מזהה השלב של השכן למספר השלב שנמצא במידע על השכן
+            neighbor.totalQueue = std::max(0, std::stoi((*it)[4].str()));// מעדכנת את מספר הרכבים בתור הכולל של השכן במידע על השכן
+            neighbor.avgWaitingSec = std::max(0.0, std::stod((*it)[5].str()));// מעדכנת את זמן ההמתנה הממוצע של השכן במידע על השכן
+            neighbor.emergencyActive = ((*it)[6].str() == "true");// מעדכנת את מצב החירום של השכן במידע על השכן
+            neighbor.signedAtSec = std::stod((*it)[7].str());// מעדכנת את זמן החתימה של השכן במידע על השכן
+            const std::string signature = (*it)[8].str();// מעדכנת את החתימה של השכן במידע על השכן
+            neighbor.signatureVerified = verify_neighbor_signature(neighbor, signature, neighborAuth);// מאמתת את החתימה של השכן במידע על השכן
+            if (neighbor.signatureVerified) {// אם החתימה של השכן מאומתת, מוסיפה את המידע על השכן לרשימת השכנים
+                out.neighbors.push_back(neighbor);// מוסיפה את המידע על השכן לרשימת השכנים
             }
         }
     }
 
-    return !out.lanes.empty();
+    return !out.lanes.empty();// מחזירה true אם מצאנו לפחות נתיב אחד במידע על מצב החבילה שנשלחה מהצומת, אחרת מחזירה false
 }
 
-traffic::JunctionState with_neighbor_signals(traffic::JunctionState state, const std::vector<traffic::NeighborSignal>& neighbors) {
-    state.neighborSignals = neighbors;
+traffic::JunctionState with_neighbor_signals(traffic::JunctionState state, const std::vector<traffic::NeighborSignal>& neighbors) {// פונקציה שמחזירה את מצב הצומת עם האותות מהשכנים
+    state.neighborSignals = neighbors;// מעדכנת את רשימת האותות מהשכנים במצב הצומת
     return state;
 }
 
-bool has_busy_synced_neighbor(
-    const traffic::JunctionState& state,
-    int selectedPhase,
-    const traffic::TrafficThresholdConfig& thresholds
+bool has_busy_synced_neighbor(// פונקציה שבודקת אם יש שכן מסונכרן עסוק
+    const traffic::JunctionState& state,// מצב הצומת
+    int selectedPhase,// מזהה השלב הנבחר
+    const traffic::TrafficThresholdConfig& thresholds// קונפיגורציה של סף התנועה
 ) {
-    const double localLaneCount = std::max<std::size_t>(1, state.laneIds.size());
-    for (const auto& neighbor : state.neighborSignals) {
-        const double normalizedQueue = static_cast<double>(neighbor.totalQueue) / static_cast<double>(localLaneCount);
-        if (neighbor.phaseId == selectedPhase && normalizedQueue > thresholds.vehicleCount.lowMax) {
+    const double localLaneCount = std::max<std::size_t>(1, state.laneIds.size());// מספר הנתיבים בצומת הנוכחי, לפחות 1
+    for (const auto& neighbor : state.neighborSignals) {// לולאה שעוברת על כל השכנים של הצומת הנוכחי
+        const double normalizedQueue = static_cast<double>(neighbor.totalQueue) / static_cast<double>(localLaneCount);// מחשבת את מספר הרכבים בתור של השכן ביחס למספר הנתיבים בצומת הנוכחי
+        if (neighbor.phaseId == selectedPhase && normalizedQueue > thresholds.vehicleCount.lowMax) {// אם השכן מסונכרן עם השלב הנבחר ויש לו יותר מדי רכבים בתור, מחזירה true
             return true;
         }
     }
     return false;
 }
 
-bool has_busy_opposing_neighbor(
-    const traffic::JunctionState& state,
-    int selectedPhase,
-    const traffic::TrafficThresholdConfig& thresholds
+bool has_busy_opposing_neighbor(// פונקציה שבודקת אם יש שכן מסונכרן עסוק
+    const traffic::JunctionState& state,// מצב הצומת
+    int selectedPhase,// מזהה השלב הנבחר
+    const traffic::TrafficThresholdConfig& thresholds// קונפיגורציה של סף התנועה
 ) {
-    const double localLaneCount = std::max<std::size_t>(1, state.laneIds.size());
-    for (const auto& neighbor : state.neighborSignals) {
-        const double normalizedQueue = static_cast<double>(neighbor.totalQueue) / static_cast<double>(localLaneCount);
-        if (neighbor.phaseId >= 0 && neighbor.phaseId != selectedPhase && normalizedQueue > thresholds.vehicleCount.mediumMax) {
+    const double localLaneCount = std::max<std::size_t>(1, state.laneIds.size());// מספר הנתיבים בצומת הנוכחי, לפחות 1
+    for (const auto& neighbor : state.neighborSignals) {// לולאה שעוברת על כל השכנים של הצומת הנוכחי
+        const double normalizedQueue = static_cast<double>(neighbor.totalQueue) / static_cast<double>(localLaneCount);// מחשבת את מספר הרכבים בתור של השכן ביחס למספר הנתיבים בצומת הנוכחי
+        if (neighbor.phaseId >= 0 && neighbor.phaseId != selectedPhase && normalizedQueue > thresholds.vehicleCount.mediumMax) {// אם השכן מסונכרן עם שלב שונה ויש לו יותר מדי רכבים בתור, מחזירה true
             return true;
         }
     }
     return false;
 }
 
-bool phase_contains_lane(const std::vector<traffic::Action>& validActions, int phaseId, int laneId) {
-    for (const auto& phase : validActions) {
-        if (phase.phaseId != phaseId) continue;
-        return std::find(phase.greenLanes.begin(), phase.greenLanes.end(), laneId) != phase.greenLanes.end();
+bool phase_contains_lane(const std::vector<traffic::Action>& validActions, int phaseId, int laneId) {// פונקציה שבודקת אם שלב מסוים מכיל נתיב מסוים
+    for (const auto& phase : validActions) {// לולאה שעוברת על כל השלבים התקפים
+        if (phase.phaseId != phaseId) continue;// אם מזהה השלב שונה מזה של השלב הנבדק, ממשיכה לשלב הבא
+        return std::find(phase.greenLanes.begin(), phase.greenLanes.end(), laneId) != phase.greenLanes.end();// מחזירה true אם הנתיב נמצא ברשימת הנתיבים הירוקים של השלב
     }
     return false;
 }
 
-std::vector<traffic::Action> build_phases_from_lanes(const std::vector<ParsedLane>& lanes) {
-    std::vector<int> even;
-    std::vector<int> odd;
-    for (const auto& lane : lanes) {
-        if (lane.laneId % 2 == 0) {
-            even.push_back(lane.laneId);
+std::vector<traffic::Action> build_phases_from_lanes(const std::vector<ParsedLane>& lanes) {// פונקציה שמבנה את השלבים התקפים מהנתיבים הקיימים בצומת
+    std::vector<int> even;// רשימה של מזהי הנתיבים הזוגיים
+    std::vector<int> odd;// רשימה של מזהי הנתיבים האי-זוגיים
+    for (const auto& lane : lanes) {// לולאה שעוברת על כל הנתיבים הקיימים בצומת
+        if (lane.laneId % 2 == 0) {// אם מזהה הנתיב זוגי, מוסיפה אותו לרשימת הנתיבים הזוגיים
+            even.push_back(lane.laneId);// מוסיפה את מזהה הנתיב הזוגי לרשימת הנתיבים הזוגיים
         } else {
-            odd.push_back(lane.laneId);
+            odd.push_back(lane.laneId);// מוסיפה את מזהה הנתיב האי-זוגי לרשימת הנתיבים האי-זוגיים
         }
     }
 
-    std::vector<traffic::Action> phases;
-    if (!even.empty()) phases.push_back({0, even});
-    if (!odd.empty()) phases.push_back({1, odd});
+    std::vector<traffic::Action> phases;// רשימה של השלבים התקפים
+    if (!even.empty()) phases.push_back({0, even});// אם ישנם נתיבים זוגיים, מוסיפה שלב עם מזהה 0 ורשימת הנתיבים הזוגיים
+    if (!odd.empty()) phases.push_back({1, odd});// אם ישנם נתיבים אי-זוגיים, מוסיפה שלב עם מזהה 1 ורשימת הנתיבים האי-זוגיים
 
-    if (phases.empty()) {
-        for (std::size_t i = 0; i < lanes.size(); ++i) {
-            phases.push_back({static_cast<int>(i), {lanes[i].laneId}});
+    if (phases.empty()) {// אם אין שלבים תקפים, מוסיפה שלב לכל נתיב בנפרד
+        for (std::size_t i = 0; i < lanes.size(); ++i) {// לולאה שעוברת על כל הנתיבים הקיימים בצומת
+            phases.push_back({static_cast<int>(i), {lanes[i].laneId}});// מוסיפה שלב עם מזהה השווה למיקום הנתיב ברשימה ורשימת הנתיבים שמכילה רק את הנתיב הנוכחי
         }
     }
 
     return phases;
 }
 
-std::vector<int> lane_ids_from_lanes(const std::vector<ParsedLane>& lanes) {
-    std::vector<int> ids;
-    ids.reserve(lanes.size());
-    for (const auto& lane : lanes) {
-        ids.push_back(lane.laneId);
+std::vector<int> lane_ids_from_lanes(const std::vector<ParsedLane>& lanes) {// פונקציה שמחזירה את מזהי הנתיבים מרשימת הנתיבים
+    std::vector<int> ids;// רשימה של מזהי הנתיבים
+    ids.reserve(lanes.size());// שמורה מקום ברשימה בהתאם למספר הנתיבים
+    for (const auto& lane : lanes) {// לולאה שעוברת על כל הנתיבים
+        ids.push_back(lane.laneId);// מוסיפה את מזהה הנתיב לרשימה
     }
     return ids;
 }
 
-traffic::LaneConflictConfig load_lane_conflicts_from_api(
-    const smart_traffic::HttpClient& client,
-    int intersectionId
+traffic::LaneConflictConfig load_lane_conflicts_from_api(// פונקציה שמטענת את הקונפיגורציה של קונפליקטים בין נתיבים מה-API
+    const smart_traffic::HttpClient& client,// אובייקט שמייצג את הלקוח שמבצע את הבקשה ל-API
+    int intersectionId// מזהה הצומת
 ) {
-    traffic::LaneConflictConfig cfg;
-    cfg.source = "/intersection/" + std::to_string(intersectionId) + "/conflicts";
+    traffic::LaneConflictConfig cfg;// אובייקט קונפיגורציה עם ערכי ברירת מחדל
+    cfg.source = "/intersection/" + std::to_string(intersectionId) + "/conflicts";// מחרוזת שמייצגת את הנתיב ל-API שמחזיר את הקונפליקטים בין הנתיבים בצומת
 
-    const std::string payload = client.get(cfg.source);
-    if (payload.empty()) {
-        cfg.source += " (empty response)";
+    const std::string payload = client.get(cfg.source);// מבצע בקשה ל-API ומחזיר את התגובה במחרוזת
+    if (payload.empty()) {// אם התגובה ריקה, מעדכנת את מקור הקונפיגורציה ומחזירה את הקונפיגורציה
+        cfg.source += " (empty response)";// מעדכנת את מקור הקונפיגורציה במחרוזת שמציינת שהתגובה ריקה
+        return cfg;// מחזירה את הקונפיגורציה עם מקור הקונפיגורציה המעודכן
+    }
+
+    const auto conflictsArray = extract_json_array(payload, "conflicts");// פונקציה שמחזירה את המערך JSON של הקונפליקטים בין הנתיבים בצומת
+    if (!conflictsArray.has_value()) {// אם לא מצאנו את המערך JSON של הקונפליקטים בין הנתיבים בצומת, מעדכנת את מקור הקונפיגורציה ומחזירה את הקונפיגורציה
+        cfg.source += " (missing conflicts array)";// מעדכנת את מקור הקונפיגורציה במחרוזת שמציינת שהמערך JSON של הקונפליקטים בין הנתיבים בצומת חסר
         return cfg;
     }
 
-    const auto conflictsArray = extract_json_array(payload, "conflicts");
-    if (!conflictsArray.has_value()) {
-        cfg.source += " (missing conflicts array)";
-        return cfg;
-    }
-
-    std::regex pairRe("\\[\\s*(-?\\d+)\\s*,\\s*(-?\\d+)\\s*\\]");
-    auto begin = std::sregex_iterator(conflictsArray->begin(), conflictsArray->end(), pairRe);
-    auto end = std::sregex_iterator();
-    for (auto it = begin; it != end; ++it) {
-        int a = -1;
-        int b = -1;
+    std::regex pairRe("\\[\\s*(-?\\d+)\\s*,\\s*(-?\\d+)\\s*\\]");// regex שמחפש זוגות של מספרים שלמים במערך JSON של הקונפליקטים בין הנתיבים בצומת
+    auto begin = std::sregex_iterator(conflictsArray->begin(), conflictsArray->end(), pairRe);// יוצר איטרטור שמתחיל מהאובייקט הראשון במערך הקונפליקטים בין הנתיבים בצומת
+    auto end = std::sregex_iterator();// יוצר איטרטור שמסמן את סוף המערך הקונפליקטים בין הנתיבים בצומת
+    for (auto it = begin; it != end; ++it) {// לולאה שעוברת על כל האובייקטים במערך הקונפליקטים בין הנתיבים בצומת
+        int a = -1;// משתנה שמייצג את מזהה הנתיב הראשון בקונפליקט
+        int b = -1;// משתנה שמייצג את מזהה הנתיב השני בקונפליקט
         try {
-            a = std::stoi((*it)[1].str());
-            b = std::stoi((*it)[2].str());
+            a = std::stoi((*it)[1].str());// מעדכנת את מזהה הנתיב הראשון בקונפליקט
+            b = std::stoi((*it)[2].str());// מעדכנת את מזהה הנתיב השני בקונפליקט
         } catch (...) {
-            continue;
+            continue;// אם לא ניתן להמיר את המחרוזת למספר שלם, ממשיכה לאובייקט הבא במערך הקונפליקטים בין הנתיבים בצומת
         }
 
-        if (a < 0 || b < 0 || a == b) continue;
-        if (a > b) std::swap(a, b);
-        cfg.conflictPairs.emplace_back(a, b);
+        if (a < 0 || b < 0 || a == b) continue;// אם אחד המזהים של הנתיבים בקונפליקט הוא שלילי או ששני המזהים זהים, ממשיכה לאובייקט הבא במערך הקונפליקטים בין הנתיבים בצומת
+        if (a > b) std::swap(a, b);// אם מזהה הנתיב הראשון גדול מזהה הנתיב השני, מחליפה ביניהם כדי לשמור על סדר עולה
+        cfg.conflictPairs.emplace_back(a, b);// מוסיפה את זוג המזהים של הנתיבים בקונפליקט לרשימת הקונפליקטים בין הנתיבים בצומת
     }
 
-    std::sort(cfg.conflictPairs.begin(), cfg.conflictPairs.end());
-    cfg.conflictPairs.erase(std::unique(cfg.conflictPairs.begin(), cfg.conflictPairs.end()), cfg.conflictPairs.end());
+    std::sort(cfg.conflictPairs.begin(), cfg.conflictPairs.end());// ממיינת את רשימת הקונפליקטים בין הנתיבים בצומת לפי סדר עולה של זוגות המזהים
+    cfg.conflictPairs.erase(std::unique(cfg.conflictPairs.begin(), cfg.conflictPairs.end()), cfg.conflictPairs.end());// מסירה כפילויות מרשימת הקונפליקטים בין הנתיבים בצומת
     return cfg;
 }
 
-void print_loaded_conflicts(int intersectionId, const traffic::LaneConflictConfig& cfg) {
-    std::cout << "Loaded conflict pairs for intersection " << intersectionId
+void print_loaded_conflicts(int intersectionId, const traffic::LaneConflictConfig& cfg) {// פונקציה שמדפיסה את הקונפליקטים בין הנתיבים בצומת
+    std::cout << "Loaded conflict pairs for intersection " << intersectionId// מדפיסה את המזהה של הצומת
               << " from " << cfg.source
               << " (pairs=" << cfg.conflictPairs.size() << ")\n";
-    if (cfg.conflictPairs.empty()) {
-        std::cout << "  - No conflict pairs returned by API\n";
+    if (cfg.conflictPairs.empty()) {// אם אין קונפליקטים בין הנתיבים בצומת, מדפיסה הודעה מתאימה
+        std::cout << "  - No conflict pairs returned by API\n";// מדפיסה הודעה מתאימה
         return;
     }
 
-    for (const auto& p : cfg.conflictPairs) {
-        std::cout << "  - conflict: lane " << p.first << " <-> lane " << p.second << "\n";
+    for (const auto& p : cfg.conflictPairs) {// לולאה שעוברת על כל הקונפליקטים בין הנתיבים בצומת ומדפיסה את זוגות המזהים של הנתיבים בקונפליקט
+        std::cout << "  - conflict: lane " << p.first << " <-> lane " << p.second << "\n";// מדפיסה את זוג המזהים של הנתיבים בקונפליקט
     }
 }
 
-void run_conflict_enforcement_smoke_test(
-    int intersectionId,
-    const traffic::LaneConflictConfig& cfg
+void run_conflict_enforcement_smoke_test(// פונקציה שמריצה בדיקה מהירה של אכיפת הקונפליקטים בין הנתיבים בצומת
+    int intersectionId,// מזהה הצומת
+    const traffic::LaneConflictConfig& cfg// קונפיגורציה של הקונפליקטים בין הנתיבים בצומת
 ) {
-    if (cfg.conflictPairs.empty()) {
-        std::cout << "[Conflict smoke test] intersection " << intersectionId
+    if (cfg.conflictPairs.empty()) {// אם אין קונפליקטים בין הנתיבים בצומת, מדפיסה הודעה מתאימה ומחזירה
+        std::cout << "[Conflict smoke test] intersection " << intersectionId// מדפיסה את המזהה של הצומת
                   << ": skipped (no conflicts from API)\n";
         return;
     }
 
-    const int a = cfg.conflictPairs.front().first;
-    const int b = cfg.conflictPairs.front().second;
+    const int a = cfg.conflictPairs.front().first;// משתנה שמייצג את מזהה הנתיב הראשון בקונפליקט הראשון ברשימת הקונפליקטים בין הנתיבים בצומת    
+    const int b = cfg.conflictPairs.front().second;// משתנה שמייצג את מזהה הנתיב השני בקונפליקט הראשון ברשימת הקונפליקטים בין הנתיבים בצומת
 
-    std::vector<traffic::Lane> lanes = {
+    std::vector<traffic::Lane> lanes = {// רשימה של הנתיבים בצומת
         {a, 0, 0.0, 0.0, false},
         {b, 0, 0.0, 0.0, false},
     };
 
-    std::vector<traffic::Action> phases = {
+    std::vector<traffic::Action> phases = {// רשימה של השלבים התקפים בצומת
         {900, {a, b}}, // must be rejected
         {901, {a}},    // should be valid
     };
 
-    traffic::Junction testJunction(
+    traffic::Junction testJunction(// יוצר אובייקט Junction שמייצג את הצומת
         intersectionId,
         lanes,
         phases,
@@ -532,62 +533,62 @@ void run_conflict_enforcement_smoke_test(
         cfg.conflictPairs
     );
 
-    const bool blocked = !testJunction.applyPhase(900, 0.0);
-    const bool allowed = testJunction.applyPhase(901, 1.0);
+    const bool blocked = !testJunction.applyPhase(900, 0.0);// בודק אם השלב 900 נחסם על ידי הקונפליקטים בין הנתיבים בצומת
+    const bool allowed = testJunction.applyPhase(901, 1.0);// בודק אם השלב 901 מותר על ידי הקונפליקטים בין הנתיבים בצומת
 
-    std::cout << "[Conflict smoke test] pair(" << a << "," << b << ")"
-              << " | phase{900:[" << a << "," << b << "]} => " << (blocked ? "BLOCKED" : "ALLOWED")
-              << " | phase{901:[" << a << "]} => " << (allowed ? "ALLOWED" : "BLOCKED")
+    std::cout << "[Conflict smoke test] pair(" << a << "," << b << ")"// מדפיסה את התוצאה של הבדיקה המהירה של אכיפת הקונפליקטים בין הנתיבים בצומת
+              << " | phase{900:[" << a << "," << b << "]} => " << (blocked ? "BLOCKED" : "ALLOWED")// מדפיסה את התוצאה של השלב 900
+              << " | phase{901:[" << a << "]} => " << (allowed ? "ALLOWED" : "BLOCKED")// מדפיסה את התוצאה של השלב 901
               << "\n";
 }
 
-std::string lane_topology_key(const ParsedPacketState& s) {
-    std::ostringstream oss;
-    oss << s.intersectionId << "|";
-    for (const auto& lane : s.lanes) {
+std::string lane_topology_key(const ParsedPacketState& s) {// פונקציה שמחזירה מחרוזת שמייצגת את המפתח של הטופולוגיה של הנתיבים בצומת
+    std::ostringstream oss;// יוצר אובייקט שמייצג את המחרוזת שמכילה את המפתח של הטופולוגיה של הנתיבים בצומת
+    oss << s.intersectionId << "|";// מוסיפה את מזהה הצומת למחרוזת שמכילה את המפתח של הטופולוגיה של הנתיבים בצומת
+    for (const auto& lane : s.lanes) {// לולאה שעוברת על כל הנתיבים בצומת ומוסיפה את מזהי הנתיבים למחרוזת שמכילה את המפתח של הטופולוגיה של הנתיבים בצומת
         oss << lane.laneId << ",";
     }
-    return oss.str();
+    return oss.str();// מחזירה את המחרוזת שמכילה את המפתח של הטופולוגיה של הנתיבים בצומת
 }
 
-void run_with_server(const std::string& host, int port, bool useGreedyController = false) {
-    std::cout << "\n=== CONNECTED MODE (" << (useGreedyController ? "Greedy-Aging" : "Unified RL") << " Path) ===\n";
+void run_with_server(const std::string& host, int port, bool useGreedyController = false) {// פונקציה שמריצה את התוכנית עם חיבור לשרת
+    std::cout << "\n=== CONNECTED MODE (" << (useGreedyController ? "Greedy-Aging" : "Unified RL") << " Path) ===\n";// מדפיסה הודעה שמציינת שהחיבור לשרת פעיל ושמציינת את סוג הבקרת התנועה שנבחרה
     std::cout << "Server: " << host << ":" << port << "\n\n";
 
-    smart_traffic::HttpClient client(host, port);
-    const NeighborAuthConfig neighborAuth = load_neighbor_auth_config();
-    const std::string health = client.get("/health");
-    if (health.empty()) {
+    smart_traffic::HttpClient client(host, port);// יוצר אובייקט שמייצג את הלקוח שמבצע את הבקשות לשרת
+    const NeighborAuthConfig neighborAuth = load_neighbor_auth_config();// טוען את קונפיגורציית האימות של השכנים
+    const std::string health = client.get("/health");// מבצע בקשה לשרת ומחזיר את התגובה במחרוזת
+    if (health.empty()) {// אם התגובה ריקה, מדפיסה הודעת שגיאה ומחזירה
         std::cerr << "Cannot connect to server. Run FastAPI first.\n";
         return;
     }
-    std::cout << "Health: " << health << "\n\n";
-    std::cout << "Neighbor auth source: " << neighborAuth.source
-              << " | skew=" << neighborAuth.maxSignatureSkewSec << "s\n";
+    std::cout << "Health: " << health << "\n\n";// מדפיסה את התגובה של הבקשה לשרת
+    std::cout << "Neighbor auth source: " << neighborAuth.source// מדפיסה את מקור קונפיגורציית האימות של השכנים
+              << " | skew=" << neighborAuth.maxSignatureSkewSec << "s\n";// מדפיסה את ההפרש המקסימלי של החתימות של השכנים
 
-    traffic::TrafficThresholdConfig thresholds = traffic::loadTrafficThresholdConfig();
+    traffic::TrafficThresholdConfig thresholds = traffic::loadTrafficThresholdConfig();// טוען את קונפיגורציית סף התנועה
     std::cout << "Threshold config: " << thresholds.source << "\n";
-    const traffic::NeighborCoordConfig neighborConfig = traffic::loadNeighborCoordConfig();
-    std::cout << "Neighbor tuning: " << neighborConfig.profileName
+    const traffic::NeighborCoordConfig neighborConfig = traffic::loadNeighborCoordConfig();// טוען את קונפיגורציית הקואורדינטות של השכנים
+    std::cout << "Neighbor tuning: " << neighborConfig.profileName// מדפיסה את שם הפרופיל של קונפיגורציית הקואורדינטות של השכנים
               << " (" << neighborConfig.source << ")\n";
-    traffic::LaneConflictConfig laneConflicts;
-    laneConflicts.source = "api (pending intersection)";
-    traffic::PhaseConfig phaseConfig = traffic::loadPhaseConfig();
+    traffic::LaneConflictConfig laneConflicts;// יוצר אובייקט שמייצג את קונפיגורציית הקונפליקטים בין הנתיבים בצומת
+    laneConflicts.source = "api (pending intersection)";// מחרוזת שמציינת שהקונפיגורציה של הקונפליקטים בין הנתיבים בצומת תטען מה-API עבור הצומת הפעילה
+    traffic::PhaseConfig phaseConfig = traffic::loadPhaseConfig();// טוען את קונפיגורציית השלבים התקפים
     std::cout << "Phase config: " << phaseConfig.source
               << " (intersections=" << phaseConfig.phasesByIntersection.size() << ")\n";
-    traffic::RLAgent agent({}, thresholds, neighborConfig);
-    traffic::GreedyAgingController greedy;
-    int activeThresholdIntersection = -1;
-    int activeConflictIntersection = -1;
+    traffic::RLAgent agent({}, thresholds);// יוצר אובייקט שמייצג את הסוכן הלמידה עם קונפיגורציית סף התנועה
+    traffic::GreedyAgingController greedy;// יוצר אובייקט שמייצג את הבקרת התנועה Greedy-Aging
+    int activeThresholdIntersection = -1;// משתנה שמייצג את מזהה הצומת הפעילה עבור קונפיגורציית סף התנועה
+    int activeConflictIntersection = -1;// משתנה שמייצג את מזהה הצומת הפעילה עבור קונפיגורציית הקונפליקטים בין הנתיבים בצומת
     const std::string qTablePath = "qtable.tsv";
-    const bool loaded = agent.loadQTable(qTablePath);
+    const bool loaded = agent.loadQTable(qTablePath);// טוען את טבלת Q מהקובץ
     std::cout << "Q-table load: " << (loaded ? "ok" : "new") << " (" << qTablePath << ")\n";
-    std::unique_ptr<traffic::Junction> junction;
-    std::vector<traffic::Action> phases;
+    std::unique_ptr<traffic::Junction> junction;// מצביע חכם לאובייקט Junction שמייצג את הצומת הפעילה
+    std::vector<traffic::Action> phases;// רשימה של השלבים התקפים בצומת הפעילה
 
-    std::string currentTopology;
-    double nowSec = 0.0;
-    constexpr double kStepSec = 0.5;
+    std::string currentTopology;// מחרוזת שמייצגת את המפתח של הטופולוגיה של הנתיבים בצומת הפעילה
+    double nowSec = 0.0;// משתנה שמייצג את הזמן הנוכחי בשניות
+    constexpr double kStepSec = traffic::constants::kControllerStepSec;// משתנה שמייצג את משך הזמן של כל צעד של הבקרת התנועה בשניות
 
     while (true) {
         const std::string packet = client.get("/intersection/1/packet");//קבלת מידע על צומת מהשרת
@@ -764,7 +765,7 @@ int main(int argc, char* argv[]) {
     std::cout << "  Smart Traffic Controller (C++)\n";
     std::cout << "  Unified RL Path: Junction + RLAgent\n";
     std::cout << "========================================\n";
-
+//בדיקה איזה מצב ריצה נבחר על ידי המשתמש
     if (argc > 1 && std::string(argv[1]) == "--server") {
         std::string host = "127.0.0.1";
         int port = 8000;
